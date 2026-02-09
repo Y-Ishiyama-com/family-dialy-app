@@ -1,0 +1,28 @@
+{
+  "name": "family-diary-app",
+  "version": "0.1.0",
+  "description": "Family diary web application with AWS CDK infrastructure",
+  "private": true,
+  "scripts": {
+    "backend:install": "cd backend && pip install -r requirements.txt",
+    "backend:dev": "cd backend && python main.py",
+    "frontend:install": "cd frontend && npm install",
+    "frontend:dev": "cd frontend && npm run dev",
+    "frontend:build": "cd frontend && npm run build",
+    "infra:install": "cd infrastructure && npm install",
+    "infra:synth": "cd infrastructure && cdk synth",
+    "infra:bootstrap": "cd infrastructure && cdk bootstrap",
+    "infra:deploy": "cd infrastructure && cdk deploy --all",
+    "infra:destroy": "cd infrastructure && cdk destroy --all"
+  },
+  "keywords": [
+    "diary",
+    "family",
+    "aws",
+    "cdk",
+    "react",
+    "fastapi"
+  ],
+  "author": "",
+  "license": "MIT"
+}

@@ -1,0 +1,256 @@
+/* ファミリーカレンダー - リスト形式（スマホ対応） */
+
+.family-calendar-list {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #666;
+}
+
+.empty-state p {
+  margin: 0.5rem 0;
+  font-size: 1rem;
+}
+
+.empty-hint {
+  font-size: 0.9rem;
+  color: #999;
+}
+
+/* エントリアイテム */
+.entry-item {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.entry-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #667eea;
+}
+
+/* 非公開日記アイテム - 暖色系 */
+.entry-item.private {
+  border-color: #ffd4c4;
+}
+
+.entry-item.private:hover {
+  box-shadow: 0 4px 12px rgba(255, 127, 80, 0.15);
+  border-color: #ff7f50;
+}
+
+.entry-item.today {
+  border: 2px solid #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+/* エントリヘッダー */
+.entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+}
+
+.entry-item.today .entry-header {
+  background: linear-gradient(135deg, #e8ebf7 0%, #f5f7ff 100%);
+}
+
+/* 非公開日記ヘッダー - 暖色系 */
+.entry-item.private .entry-header {
+  background: linear-gradient(135deg, #fff5f0 0%, #ffe8db 100%);
+}
+
+.entry-item.private.today .entry-header {
+  background: linear-gradient(135deg, #ffe4d6 0%, #ffd9c9 100%);
+}
+
+.entry-date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.today-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.date-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.entry-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.user-badge {
+  background: #667eea;
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* 非公開日記のユーザーバッジ - 暖色系 */
+.user-badge.private {
+  background: linear-gradient(135deg, #ff7f50 0%, #ff6347 100%);
+}
+
+/* 非公開バッジ */
+.private-badge {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.expand-icon {
+  color: #667eea;
+  font-size: 1rem;
+  transition: transform 0.3s ease;
+}
+
+/* エントリコンテンツ */
+.entry-content {
+  padding: 1.25rem;
+  border-top: 1px solid #f0f0f0;
+  background: white;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.entry-text {
+  color: #333;
+  line-height: 1.7;
+  font-size: 1rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.entry-photo {
+  margin-top: 1rem;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.entry-photo img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px;
+}
+
+/* スマホ対応 */
+@media (max-width: 768px) {
+  .entry-header {
+    padding: 0.9rem 1rem;
+  }
+
+  .date-text {
+    font-size: 1rem;
+  }
+
+  .user-badge {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.8rem;
+  }
+
+  .entry-content {
+    padding: 1rem;
+  }
+
+  .entry-text {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .family-calendar-list {
+    padding: 0 0.5rem;
+  }
+
+  .entry-item {
+    border-radius: 10px;
+    margin-bottom: 0.75rem;
+  }
+
+  .entry-header {
+    padding: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .entry-date {
+    flex-basis: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  .date-text {
+    font-size: 0.95rem;
+  }
+
+  .today-badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .user-badge {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  .expand-icon {
+    font-size: 0.9rem;
+  }
+
+  .entry-content {
+    padding: 0.8rem;
+  }
+
+  .entry-text {
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .empty-state {
+    padding: 2rem 1rem;
+  }
+
+  .empty-state p {
+    font-size: 0.9rem;
+  }
+
+  .entry-preview {
+    display: none;
+  }
+}
