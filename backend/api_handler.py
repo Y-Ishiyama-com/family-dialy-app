@@ -39,9 +39,9 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         print(f"Request: {method} {path}")
         
-        # CORSヘッダー
+        # CORSヘッダー（本番環境: CloudFrontドメインのみ許可）
         cors_headers = {
-            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Origin": "https://d1l985y7ocpo2p.cloudfront.net",
             "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type,Authorization",
         }
