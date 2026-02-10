@@ -15,9 +15,13 @@ from models import DiaryEntry
 # 環境変数
 DYNAMODB_TABLE = os.environ.get("DYNAMODB_TABLE_NAME")
 PHOTO_BUCKET = os.environ.get("PHOTO_BUCKET_NAME")
+ALLOWED_ORIGINS = os.environ.get("ALLOWED_ORIGINS", "https://d1l985y7ocpo2p.cloudfront.net")
 
 # データベース初期化
 db = DiaryDatabase(DYNAMODB_TABLE, PHOTO_BUCKET)
+
+# CORS許可オリジンをパース（カンマ区切り）
+ALLOWED_ORIGINS_LIST = [origin.strip() for origin in ALLOWED_ORIGINS.split(",") if origin.strip()]
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -39,12 +43,23 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         
         print(f"Request: {method} {path}")
         
-        # CORSヘッダー（本番環境: CloudFrontドメインのみ許可）
+        # 動的CORS処理: リクエストのOriginを検証
+        request_origin = headers.get("origin") or headers.get("Origin", "")
+        allowed_origin = get_allowed_origin(request_origin)
+        
+        # CORSヘッダー（許可されたOriginのみ）
         cors_headers = {
-            "Access-Control-Allow-Origin": "https://d1l985y7ocpo2p.cloudfront.net",
             "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
             "Access-Control-Allow-Headers": "Content-Type,Authorization",
         }
+        
+        # 許可されたOriginの場合のみAccess-Control-Allow-Originを追加
+        if allowed_origin:
+            cors_headers["Access-Control-Allow-Origin"] = allowed_origin
+            cors_headers["Access-Control-Allow-Credentials"] = "true"
+            print(f"CORS: Allowed origin = {allowed_origin}")
+        else:
+            print(f"CORS: Origin '{request_origin}' not in allowed list: {ALLOWED_ORIGINS_LIST}")
         
         # OPTIONSリクエスト（プリフライト）
         if method == "OPTIONS":
@@ -66,9 +81,16 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # ユーザー名を取得
         username = claims.get("cognito:username") or claims.get("username")
         if not username:
-            # 認証情報がない場合（開発モード）
-            print("Warning: No username in claims, using default")
-            username = "test-user"
+            # 認証情報がない場合:
+            # - 明示的にローカル開発用バイパスが許可されている場合のみ test-user を使用
+            # - それ以外は 401 を返す
+            allow_dev_bypass = os.environ.get("ALLOW_DEV_AUTH_BYPASS", "").lower() == "true"
+            if allow_dev_bypass:
+                print("Warning: No username in claims, using development bypass as 'test-user'")
+                username = "test-user"
+            else:
+                print("Error: No username in claims and development bypass is disabled")
+                return error_response(401, "認証情報が無効です", cors_headers)
         
         print(f"Authenticated user: {username}")
         
@@ -237,6 +259,34 @@ def success_response(data: Any, headers: Dict) -> Dict:
         "headers": {**headers, "Content-Type": "application/json"},
         "body": json.dumps(data, ensure_ascii=False, default=str)
     }
+
+
+def get_allowed_origin(request_origin: str) -> str:
+    """
+    リクエストのOriginが許可リストに含まれているか検証
+    
+    Args:
+        request_origin: リクエストヘッダーのOrigin
+    
+    Returns:
+        許可されている場合はそのOrigin、許可されていない場合は空文字列
+    """
+    if not request_origin:
+        return ""
+    
+    # 許可リストと完全一致チェック
+    if request_origin in ALLOWED_ORIGINS_LIST:
+        return request_origin
+    
+    # localhost開発環境の特別処理（オプション）
+    if request_origin.startswith("http://localhost:") or request_origin.startswith("http://127.0.0.1:"):
+        # 開発環境バイパスが有効な場合のみ許可
+        allow_dev_bypass = os.environ.get("ALLOW_DEV_CORS_BYPASS", "").lower() == "true"
+        if allow_dev_bypass:
+            print(f"Warning: Development CORS bypass enabled for {request_origin}")
+            return request_origin
+    
+    return ""
 
 
 def error_response(status_code: int, message: str, headers: Dict) -> Dict:
