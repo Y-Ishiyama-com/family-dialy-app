@@ -134,6 +134,16 @@ export class ApiStack extends cdk.Stack {
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });
 
+    // My calendar endpoint (認証必要)
+    const my = api.root.addResource('my');
+    const myCalendar = my.addResource('calendar');
+    const myYear = myCalendar.addResource('{year}');
+    const myMonth = myYear.addResource('{month}');
+    myMonth.addMethod('GET', lambdaIntegration, {
+      authorizer: authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
     // Store API endpoint
     this.apiEndpoint = api.url;
 

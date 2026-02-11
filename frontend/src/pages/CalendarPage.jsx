@@ -1,10 +1,10 @@
 /**
  * カレンダーページ
- * 家族の公開エントリを月別にリスト表示
+ * 公開日記（全ユーザー）と非公開日記（自分のみ）を切り替え表示
  */
 
 import { useState, useEffect } from 'react'
-import { getFamilyCalendar } from '../services/apiService'
+import { getFamilyCalendar, getMyCalendar } from '../services/apiService'
 import FamilyCalendar from '../components/FamilyCalendar'
 import './CalendarPage.css'
 
@@ -14,6 +14,7 @@ export default function CalendarPage() {
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [activeTab, setActiveTab] = useState('public') // 'public' or 'private'
 
   // 月のエントリを読み込み
   useEffect(() => {
@@ -22,7 +23,17 @@ export default function CalendarPage() {
       setError('')
 
       try {
-        const data = await getFamilyCalendar(currentYear, currentMonth)
+        let data
+        if (activeTab === 'public') {
+          // 公開日記（全ユーザー）
+          data = await getFamilyCalendar(currentYear, currentMonth)
+        } else {
+          // 非公開日記（自分のみ）
+          data = await getMyCalendar(currentYear, currentMonth)
+          // 非公開日記のみフィルタリング
+          const filteredEntries = (data.entries || []).filter(entry => !entry.is_public)
+          data = { entries: filteredEntries }
+        }
         setEntries(data.entries || [])
       } catch (err) {
         setError(err.message || 'カレンダーの読み込みに失敗しました')
@@ -32,7 +43,7 @@ export default function CalendarPage() {
     }
 
     loadCalendarEntries()
-  }, [currentYear, currentMonth])
+  }, [currentYear, currentMonth, activeTab])
 
   // loadCalendarEntriesは上記useEffect内で定義
 
@@ -69,11 +80,29 @@ export default function CalendarPage() {
     <div className="calendar-page">
       <div className="calendar-container">
         <div className="calendar-header">
-          <h1>📅 家族カレンダー</h1>
-          <p className="subtitle">家族の公開した日記を見てみよう</p>
+          <h1>📅 カレンダー</h1>
+          <p className="subtitle">
+            {activeTab === 'public' ? '家族の公開した日記を見てみよう' : '自分の非公開日記'}
+          </p>
         </div>
 
         {error && <div className="error-message">{error}</div>}
+
+        {/* タブ切り替え */}
+        <div className="calendar-tabs">
+          <button
+            className={`tab-button ${activeTab === 'public' ? 'active' : ''}`}
+            onClick={() => setActiveTab('public')}
+          >
+            🌍 公開日記
+          </button>
+          <button
+            className={`tab-button private ${activeTab === 'private' ? 'active' : ''}`}
+            onClick={() => setActiveTab('private')}
+          >
+            🔒 非公開日記
+          </button>
+        </div>
 
         <div className="calendar-controls">
           <button className="nav-button" onClick={handlePrevMonth}>

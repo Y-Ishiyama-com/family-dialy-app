@@ -103,18 +103,30 @@
   color: #666;
 }
 
-.save-button {
-  width: 100%;
-  padding: 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.icon-button {
+  flex: 1;
+  padding: 0.75rem;
   border: none;
   border-radius: 4px;
-  font-weight: 600;
   font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
-  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.save-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
 }
 
 .save-button.private {
@@ -133,17 +145,8 @@
 }
 
 .delete-button {
-  width: 100%;
-  padding: 1rem;
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   color: white;
-  border: none;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.3s;
-  margin-top: 0.5rem;
 }
 
 .delete-button.private {
@@ -159,6 +162,24 @@
 .delete-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .action-buttons {
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+  }
+
+  .icon-button {
+    padding: 0.6rem 0.5rem;
+    font-size: 0.9rem;
+    gap: 0.3rem;
+  }
+
+  /* モバイルではテキストを非表示、アイコンのみ表示の準備 */
+  .button-text {
+    display: inline;
+  }
 }
 
 @media (max-width: 600px) {

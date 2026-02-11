@@ -146,10 +146,17 @@ export const getPhotoPresignedUrl = async (date) => {
 }
 
 /**
- * 家族カレンダーを取得（月間）
+ * 家族カレンダーを取得（月間・公開日記のみ）
  */
 export const getFamilyCalendar = async (year, month) => {
   return apiCall(`/family/calendar/${year}/${month}`, { method: 'GET' })
+}
+
+/**
+ * 自分のカレンダーを取得（月間・公開/非公開すべて）
+ */
+export const getMyCalendar = async (year, month) => {
+  return apiCall(`/my/calendar/${year}/${month}`, { method: 'GET' })
 }
 
 /**

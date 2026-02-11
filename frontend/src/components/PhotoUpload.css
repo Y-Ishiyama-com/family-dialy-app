@@ -67,18 +67,30 @@
 
 @media (max-width: 768px) {
   .photo-upload {
-    padding: 1rem;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
   }
 
   .upload-zone {
-    padding: 1.5rem;
+    padding: 1rem;
   }
 
   .upload-icon {
-    font-size: 2.5rem;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
   }
 
   .upload-text {
-    font-size: 0.95rem;
+    font-size: 0.85rem;
+    margin: 0 0 0.3rem;
+  }
+
+  .upload-button {
+    padding: 0.5em 1em;
+    font-size: 0.85rem;
+  }
+
+  .upload-hint {
+    font-size: 0.75rem;
   }
 }

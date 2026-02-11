@@ -219,24 +219,29 @@ export default function DiaryPage() {
           loading={loading}
         />
 
-        <button
-          className={`save-button ${activeTab === 'private' ? 'private' : ''}`}
-          onClick={handleSave}
-          disabled={loading}
-        >
-          {loading ? '保存中...' : `💾 ${activeTab === 'public' ? '公開日記を' : '非公開日記を'}保存`}
-        </button>
-
-        {(publicText || privateText) && (
+        <div className="action-buttons">
           <button
-            className={`delete-button ${activeTab === 'private' ? 'private' : ''}`}
-            onClick={handleDelete}
+            className={`icon-button save-button ${activeTab === 'private' ? 'private' : ''}`}
+            onClick={handleSave}
             disabled={loading}
-            title={`この${activeTab === 'public' ? '公開' : '非公開'}日記を削除します`}
+            title={activeTab === 'public' ? '公開日記を保存' : '非公開日記を保存'}
           >
-            {loading ? '削除中...' : `🗑️ ${activeTab === 'public' ? '公開日記を' : '非公開日記を'}削除`}
+            <span>💾</span>
+            <span className="button-text">{loading ? '保存中' : '保存'}</span>
           </button>
-        )}
+
+          {(publicText || privateText) && (
+            <button
+              className={`icon-button delete-button ${activeTab === 'private' ? 'private' : ''}`}
+              onClick={handleDelete}
+              disabled={loading}
+              title={`この${activeTab === 'public' ? '公開' : '非公開'}日記を削除します`}
+            >
+              <span>🗑️</span>
+              <span className="button-text">{loading ? '削除中' : '削除'}</span>
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

@@ -126,6 +126,11 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             year, month = int(parts[-2]), int(parts[-1])
             return handle_get_calendar(username, year, month, cors_headers)
         
+        elif path.startswith("/my/calendar/") and method == "GET":
+            parts = path.split("/")
+            year, month = int(parts[-2]), int(parts[-1])
+            return handle_get_my_calendar(username, year, month, cors_headers)
+        
         # 404
         return error_response(404, "エンドポイントが見つかりません", cors_headers)
         
@@ -246,8 +251,38 @@ def handle_delete_diary(username: str, date_str: str, headers: Dict) -> Dict:
 
 
 def handle_get_calendar(username: str, year: int, month: int, headers: Dict) -> Dict:
-    """カレンダー取得"""
+    """カレンダー取得（公開日記のみ、全ユーザー）"""
     entries = db.get_calendar_entries(username, year, month)
+    
+    # フロントエンド向けにフィールド名を変換
+    transformed_entries = []
+    for entry in entries:
+        # 写真のS3キーから署名付きURLを生成
+        photo_url = ""
+        photos = entry.get("photos", [])
+        if photos and len(photos) > 0:
+            photo_key = photos[0]
+            photo_url = db.get_photo_url(photo_key) if photo_key else ""
+        
+        transformed_entry = {
+            "user_id": entry.get("user_id", ""),
+            "date": entry.get("date", ""),
+            "entry_text": entry.get("content", ""),
+            "photo_url": photo_url,
+            "is_public": entry.get("is_public", "false") == "true",
+            "mood": entry.get("mood", "normal"),
+            "weather": entry.get("weather", "sunny"),
+            "created_at": entry.get("created_at", ""),
+            "updated_at": entry.get("updated_at", ""),
+        }
+        transformed_entries.append(transformed_entry)
+    
+    return success_response({"entries": transformed_entries}, headers)
+
+
+def handle_get_my_calendar(username: str, year: int, month: int, headers: Dict) -> Dict:
+    """自分のカレンダー取得（公開・非公開の両方）"""
+    entries = db.query_month(username, year, month)
     
     # フロントエンド向けにフィールド名を変換
     transformed_entries = []
