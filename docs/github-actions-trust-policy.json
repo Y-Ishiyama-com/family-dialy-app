@@ -12,7 +12,7 @@
           "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
         },
         "StringLike": {
-          "token.actions.githubusercontent.com:sub": "repo:Y-Ishiyama-com/family-diary-app:*"
+          "token.actions.githubusercontent.com:sub": "repo:Y-Ishiyama-com/family-dialy-app:*"
         }
       }
     }
