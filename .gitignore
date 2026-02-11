@@ -52,9 +52,9 @@ build/
 # AWS CDK
 cdk.out/
 .cdk.staging/
-*.d.ts
-*.js
-!jest.config.js
+infrastructure/**/*.d.ts
+infrastructure/**/*.js
+!infrastructure/**/jest.config.js
 cdk-outputs.json
 
 # AWS
