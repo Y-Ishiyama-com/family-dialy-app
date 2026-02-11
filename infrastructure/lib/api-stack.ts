@@ -135,11 +135,11 @@ export class ApiStack extends cdk.Stack {
     });
 
     // My calendar endpoint (認証必要)
-    const my = api.root.addResource('my');
-    const myCalendar = my.addResource('calendar');
-    const myYear = myCalendar.addResource('{year}');
-    const myMonth = myYear.addResource('{month}');
-    myMonth.addMethod('GET', lambdaIntegration, {
+    const myResource = api.root.addResource('my');
+    const myCalendarResource = myResource.addResource('calendar');
+    const myYearResource = myCalendarResource.addResource('{year}');
+    const myMonthResource = myYearResource.addResource('{month}');
+    myMonthResource.addMethod('GET', lambdaIntegration, {
       authorizer: authorizer,
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });

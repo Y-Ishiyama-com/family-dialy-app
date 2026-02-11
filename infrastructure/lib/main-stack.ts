@@ -246,6 +246,16 @@ export class FamilyDiaryMainStack extends cdk.Stack {
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });
 
+    // My calendar endpoint (認証必要)
+    const myResource = api.root.addResource('my');
+    const myCalendarResource = myResource.addResource('calendar');
+    const myYearResource = myCalendarResource.addResource('{year}');
+    const myMonthResource = myYearResource.addResource('{month}');
+    myMonthResource.addMethod('GET', lambdaIntegration, {
+      authorizer: authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
     // === Gateway Responses for CORS on Auth Errors ===
     // 401 Unauthorizedレスポンスに明示的にCORSヘッダーを追加
     api.addGatewayResponse('Unauthorized', {
