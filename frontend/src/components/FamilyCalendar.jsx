@@ -85,7 +85,21 @@ export default function FamilyCalendar({
                 <div className="entry-text">{entry.entry_text}</div>
                 {entry.photo_url && (
                   <div className="entry-photo">
-                    <img src={entry.photo_url} alt="日記の写真" />
+                    <img 
+                      src={entry.photo_url} 
+                      alt="日記の写真"
+                      onError={(e) => {
+                        console.error('写真の読み込みエラー:', entry.photo_url)
+                        e.target.style.display = 'none'
+                        const errorDiv = document.createElement('div')
+                        errorDiv.className = 'photo-error'
+                        errorDiv.style.cssText = 'padding: 10px; background: #fee; color: #c33; border-radius: 4px; font-size: 0.9em;'
+                        errorDiv.textContent = '⚠️ 写真の読み込みに失敗しました'
+                        if (!e.target.parentElement.querySelector('.photo-error')) {
+                          e.target.parentElement.appendChild(errorDiv)
+                        }
+                      }}
+                    />
                   </div>
                 )}
               </div>

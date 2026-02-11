@@ -26,8 +26,13 @@ const apiCall = async (path, options = {}) => {
     console.warn(`⚠️  API Request: ${path} - NO TOKEN FOUND`)
   }
 
+  // URLの正規化：ダブルスラッシュを避ける
+  const baseUrl = API_ENDPOINT.endsWith('/') ? API_ENDPOINT.slice(0, -1) : API_ENDPOINT
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  const fullUrl = `${baseUrl}${normalizedPath}`
+
   try {
-    const response = await fetch(`${API_ENDPOINT}${path}`, {
+    const response = await fetch(fullUrl, {
       ...options,
       headers,
     })
@@ -47,16 +52,25 @@ const apiCall = async (path, options = {}) => {
     }
 
     if (!response.ok) {
+      // レスポンスボディを一度だけ読み取る
+      const contentType = response.headers.get('content-type')
+      let errorMessage = `API error: ${response.status}`
+      
       try {
-        const errorData = await response.json()
-        console.error(`❌ API Error: ${response.status} - ${errorData.error || errorData.detail || JSON.stringify(errorData)}`)
-        throw new Error(errorData.error || errorData.detail || `API error: ${response.status}`)
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorData.detail || errorMessage
+          console.error(`❌ API Error: ${response.status} - ${errorMessage}`)
+        } else {
+          const errorText = await response.text()
+          errorMessage = errorText || errorMessage
+          console.error(`❌ API Error: ${response.status} - ${errorMessage}`)
+        }
       } catch (parseError) {
-        // JSONパース失敗時
-        const errorText = await response.text()
-        console.error(`❌ API Error: ${response.status} - ${errorText}`)
-        throw new Error(`API error: ${response.status}`)
+        console.error(`❌ API Error: ${response.status} - Failed to parse error response`)
       }
+      
+      throw new Error(errorMessage)
     }
 
     return await response.json()

@@ -371,16 +371,8 @@ class DiaryDatabase:
             ContentType="image/jpeg"
         )
         
-        # 署名付きURL（読み込み用、24時間有効）を生成
-        presigned_url = self.s3_client.generate_presigned_url(
-            'get_object',
-            Params={
-                'Bucket': self.photo_bucket,
-                'Key': photo_key,
-            },
-            ExpiresIn=86400  # 24時間
-        )
-        return presigned_url
+        # S3キーを返す（URLではなく）
+        return photo_key
     
     def generate_presigned_url(self, photo_key: str, expiration: int = 3600) -> str:
         """S3アップロード用のプリサインURLを生成"""
@@ -397,6 +389,65 @@ class DiaryDatabase:
         )
         return presigned_url
     
+    def extract_photo_key_from_url_or_key(self, photo_data: str) -> str:
+        """
+        DynamoDBから取得したデータがURLか S3キーかを判定し、S3キーを抽出
+        
+        - URLの場合：https://bucket.s3.amazonaws.com/KEY?params → KEY を抽出
+        - S3キーの場合：KEY をそのまま返す
+        """
+        if not photo_data:
+            return ""
+        
+        # URLで始まるかチェック
+        if photo_data.startswith('http://') or photo_data.startswith('https://'):
+            try:
+                # URLをパース
+                from urllib.parse import urlparse, unquote
+                parsed = urlparse(photo_data)
+                # パス部分を取得し、先頭の / を削除
+                key = unquote(parsed.path).lstrip('/')
+                return key
+            except Exception as e:
+                print(f"Error extracting key from URL {photo_data}: {e}")
+                return ""
+        
+        # すでにS3キーの場合
+        return photo_data
+    
+    def get_photo_url(self, photo_key: str, expiration: int = 86400) -> str:
+        """S3キーから署名付き読み取りURLを生成（24時間有効）"""
+        if not self.s3_client:
+            raise Exception("S3 client not configured")
+        
+        if not photo_key:
+            return ""
+        
+        # URLか S3キーかを判定して、S3キーを抽出
+        photo_key = self.extract_photo_key_from_url_or_key(photo_key)
+        
+        if not photo_key:
+            return ""
+        
+        try:
+            presigned_url = self.s3_client.generate_presigned_url(
+                'get_object',
+                Params={
+                    'Bucket': self.photo_bucket,
+                    'Key': photo_key,
+                },
+                ExpiresIn=expiration  # 24時間有効
+            )
+            return presigned_url
+        except Exception as e:
+            print(f"Error generating presigned URL for key {photo_key}: {e}")
+            return ""
+    
     def get_calendar_entries(self, username: str, year: int, month: int) -> List[dict]:
-        """カレンダー用の月間エントリを取得"""
-        return self.query_month(username, year, month)
+        """
+        カレンダー用の月間公開エントリを取得（全ユーザー）
+        
+        Note: username パラメータは後方互換性のために残しているが、
+        家族カレンダーでは全ユーザーの公開日記を取得する
+        """
+        return self.query_public_entries_for_month(year, month)

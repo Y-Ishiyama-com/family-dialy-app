@@ -200,7 +200,15 @@ export default function DiaryPage() {
               }}
               onError={(e) => {
                 console.error('写真の読み込みエラー:', currentPhotoUrl)
+                // エラーメッセージを表示
                 e.target.style.display = 'none'
+                const errorDiv = document.createElement('div')
+                errorDiv.className = 'photo-error'
+                errorDiv.style.cssText = 'padding: 20px; background: #fee; color: #c33; border-radius: 8px; margin: 10px 0;'
+                errorDiv.textContent = '⚠️ 写真の読み込みに失敗しました。URLが期限切れでいる可能性があります。'
+                if (!e.target.parentElement.querySelector('.photo-error')) {
+                  e.target.parentElement.appendChild(errorDiv)
+                }
               }}
             />
           </div>

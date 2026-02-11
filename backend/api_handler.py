@@ -37,9 +37,15 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         query_params = event.get("queryStringParameters") or {}  # 将来的にページネーションやフィルタリングで使用予定
         body = event.get("body", "")
         
-        # パス正規化（/prod/ プレフィックスを削除）
+        # パス正規化（/prod/ プレフィックスを削除、ダブルスラッシュを除去）
         if path.startswith("/prod"):
             path = path[5:]
+        # ダブルスラッシュを単一スラッシュに置換
+        while "//" in path:
+            path = path.replace("//", "/")
+        # 空のパスは "/" にする
+        if not path:
+            path = "/"
         
         print(f"Request: {method} {path}")
         
@@ -147,10 +153,17 @@ def handle_get_diary(username: str, date_str: str, headers: Dict) -> Dict:
     if not entry:
         return error_response(404, "日記が見つかりません", headers)
     
+    # 写真のS3キーから署名付きURLを生成
+    photo_url = ""
+    photos = entry.get("photos", [])
+    if photos and len(photos) > 0:
+        photo_key = photos[0]
+        photo_url = db.get_photo_url(photo_key) if photo_key else ""
+    
     # フロントエンド向けにフィールド名を変換
     response_data = {
         "entry_text": entry.get("content", ""),
-        "photo_url": entry.get("photos", [])[0] if entry.get("photos") else "",
+        "photo_url": photo_url,
         "is_public": entry.get("is_public", "false") == "true",  # 文字列からbooleanに変換
         "mood": entry.get("mood", "normal"),
         "weather": entry.get("weather", "sunny"),
@@ -213,12 +226,15 @@ def handle_upload_photo(username: str, date_str: str, body: str, headers: Dict) 
     except Exception:
         return error_response(400, "無効な画像データ", headers)
     
-    # S3にアップロード
+    # S3にアップロード（S3キーを返す）
     try:
         photo_key = f"{username}/{date_str}/{datetime.utcnow().timestamp()}.jpg"
-        photo_url = db.upload_photo(username, date_str, image_bytes, photo_key)
+        photo_key = db.upload_photo(username, date_str, image_bytes, photo_key)
         
-        return success_response({"photo_url": photo_url}, headers)
+        # 表示用に24時間有効な署名付きURLも生成して返す
+        photo_url = db.get_photo_url(photo_key)
+        
+        return success_response({"photo_url": photo_url, "photo_key": photo_key}, headers)
     except Exception as e:
         return error_response(500, f"アップロードエラー: {str(e)}", headers)
 
@@ -236,11 +252,18 @@ def handle_get_calendar(username: str, year: int, month: int, headers: Dict) -> 
     # フロントエンド向けにフィールド名を変換
     transformed_entries = []
     for entry in entries:
+        # 写真のS3キーから署名付きURLを生成
+        photo_url = ""
+        photos = entry.get("photos", [])
+        if photos and len(photos) > 0:
+            photo_key = photos[0]
+            photo_url = db.get_photo_url(photo_key) if photo_key else ""
+        
         transformed_entry = {
             "user_id": entry.get("user_id", ""),
             "date": entry.get("date", ""),
             "entry_text": entry.get("content", ""),
-            "photo_url": entry.get("photos", [])[0] if entry.get("photos") else "",
+            "photo_url": photo_url,
             "is_public": entry.get("is_public", "false") == "true",
             "mood": entry.get("mood", "normal"),
             "weather": entry.get("weather", "sunny"),
