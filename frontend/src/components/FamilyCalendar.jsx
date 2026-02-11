@@ -7,7 +7,6 @@ import { useState } from 'react'
 import './FamilyCalendar.css'
 
 export default function FamilyCalendar({
-  year = 2024,
   month = 1,
   entries = [],
 }) {

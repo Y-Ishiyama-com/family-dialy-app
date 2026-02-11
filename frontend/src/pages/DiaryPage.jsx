@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import DiaryEntry from '../components/DiaryEntry'
 import PhotoUpload from '../components/PhotoUpload'
-import { getDiaryEntry, saveDiaryEntry, uploadPhoto, deleteDiaryEntry, getFamilyCalendar } from '../services/apiService'
+import { getDiaryEntry, saveDiaryEntry, uploadPhoto, deleteDiaryEntry } from '../services/apiService'
 import './DiaryPage.css'
 
 export default function DiaryPage() {
@@ -28,40 +28,40 @@ export default function DiaryPage() {
 
   // エントリを読み込み（公開と非公開の両方）
   useEffect(() => {
+    const loadEntries = async () => {
+      setLoading(true)
+      setError('')
+
+      try {
+        // 公開日記を読み込み（date-public）
+        try {
+          const publicEntry = await getDiaryEntry(`${currentDate}-public`)
+          setPublicText(publicEntry.entry_text || '')
+          setPublicPhotoUrl(publicEntry.photo_url || '')
+        } catch (err) {
+          // エントリがない場合はスキップ
+          setPublicText('')
+          setPublicPhotoUrl('')
+        }
+
+        // 非公開日記を読み込み（date-private）
+        try {
+          const privateEntry = await getDiaryEntry(`${currentDate}-private`)
+          setPrivateText(privateEntry.entry_text || '')
+          setPrivatePhotoUrl(privateEntry.photo_url || '')
+        } catch (err) {
+          setPrivateText('')
+          setPrivatePhotoUrl('')
+        }
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
     loadEntries()
   }, [currentDate])
-
-  const loadEntries = async () => {
-    setLoading(true)
-    setError('')
-
-    try {
-      // 公開日記を読み込み（date-public）
-      try {
-        const publicEntry = await getDiaryEntry(`${currentDate}-public`)
-        setPublicText(publicEntry.entry_text || '')
-        setPublicPhotoUrl(publicEntry.photo_url || '')
-      } catch (err) {
-        // エントリがない場合はスキップ
-        setPublicText('')
-        setPublicPhotoUrl('')
-      }
-
-      // 非公開日記を読み込み（date-private）
-      try {
-        const privateEntry = await getDiaryEntry(`${currentDate}-private`)
-        setPrivateText(privateEntry.entry_text || '')
-        setPrivatePhotoUrl(privateEntry.photo_url || '')
-      } catch (err) {
-        setPrivateText('')
-        setPrivatePhotoUrl('')
-      }
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleSave = async () => {
     setLoading(true)

@@ -17,22 +17,24 @@ export default function CalendarPage() {
 
   // 月のエントリを読み込み
   useEffect(() => {
+    const loadCalendarEntries = async () => {
+      setLoading(true)
+      setError('')
+
+      try {
+        const data = await getFamilyCalendar(currentYear, currentMonth)
+        setEntries(data.entries || [])
+      } catch (err) {
+        setError(err.message || 'カレンダーの読み込みに失敗しました')
+      } finally {
+        setLoading(false)
+      }
+    }
+
     loadCalendarEntries()
   }, [currentYear, currentMonth])
 
-  const loadCalendarEntries = async () => {
-    setLoading(true)
-    setError('')
-
-    try {
-      const data = await getFamilyCalendar(currentYear, currentMonth)
-      setEntries(data.entries || [])
-    } catch (err) {
-      setError(err.message || 'カレンダーの読み込みに失敗しました')
-    } finally {
-      setLoading(false)
-    }
-  }
+  // loadCalendarEntriesは上記useEffect内で定義
 
   const handlePrevMonth = () => {
     if (currentMonth === 1) {
