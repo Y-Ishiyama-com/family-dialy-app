@@ -6,7 +6,7 @@ boto3のみで動作（依存パッケージゼロ）
 import json
 import os
 from typing import Any, Dict
-from datetime import datetime, date
+from datetime import datetime
 import base64
 
 from database import DiaryDatabase
@@ -34,7 +34,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         path = event.get("path", "")
         method = event.get("httpMethod", "")
         headers = event.get("headers", {})
-        query_params = event.get("queryStringParameters") or {}
+        query_params = event.get("queryStringParameters") or {}  # 将来的にページネーションやフィルタリングで使用予定
         body = event.get("body", "")
         
         # パス正規化（/prod/ プレフィックスを削除）

@@ -56,10 +56,14 @@ cdk.out/
 *.d.ts
 *.js
 !jest.config.js
+cdk-outputs.json
 
 # AWS
 .aws-sam/
 sam-tests/
+
+# GitHub Actions
+.github/workflows/.env
 
 # Testing
 coverage/

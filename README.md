@@ -4,26 +4,24 @@
 
 **特徴**:
 - 🔐 個人認証（Amazon Cognito + JWT）
-- 🔄 RefreshToken自動更新（1時間ごとのログイン不要）
+- 🔄 RefreshToken自動更新対応中（※現状は一定時間ごとに再ログインが必要／詳細は「今後の改善予定」を参照）
 - 📝 公開/非公開日記の管理
 - 📸 写真アップロード機能
 - 👨‍👩‍👧‍👦 家族カレンダーで公開日記を共有
 - 🌐 CloudFront配信で高速アクセス
-- 🔒 API Gateway Cognito Authorizer + CORS制限
+- 🔒 API Gateway Cognito Authorizer + CORS制限の強化中（※詳細は「今後の改善予定」を参照）
 - 🛡️ API レート制限（月間5000リクエスト、50req/秒バースト）
 
 ## 本番環境
 
 **URL**: https://d1l985y7ocpo2p.cloudfront.net
 
-**テストユーザー**:
-```
-ユーザー名: test0
-パスワード: parkS1203!
-```
+**テストユーザーについて**:
 
-> ⚠️ テストユーザーのパスワードは本番環境では変更してください
+本番環境にログインするためのユーザー名・パスワードなどの認証情報は、このリポジトリ上では公開していません。
+デモや検証が必要な場合は、管理者に問い合わせて一時的なテストユーザーを払い出すか、各自のAWSアカウント上にデプロイした環境でテストユーザーを作成してください。
 
+> ⚠️ 本番環境の認証情報（ユーザー名・パスワードなど）をリポジトリにコミットしないでください。共有が必要な場合は、別チャネルやパスワードマネージャなどの安全な手段を利用してください。
 ---
 
 ## 技術スタック
@@ -191,9 +189,11 @@ VITE_AWS_REGION=us-west-2
 
 ## デプロイ
 
+### 手動デプロイ
+
 本番環境への変更をデプロイする手順:
 
-### バックエンド変更のデプロイ
+#### バックエンド変更のデプロイ
 
 ```bash
 cd infrastructure
@@ -201,7 +201,7 @@ npm run build
 cdk deploy --require-approval never
 ```
 
-### フロントエンド変更のデプロイ
+#### フロントエンド変更のデプロイ
 
 ```bash
 cd frontend
@@ -210,7 +210,7 @@ aws s3 sync dist/ s3://family-diary-app-stack-dev-websitebucket75c24d94-p25qzd67
 aws cloudfront create-invalidation --distribution-id E33OL17IXJUU9J --paths "/*"
 ```
 
-### フロントエンド + バックエンド両方デプロイ
+#### フロントエンド + バックエンド両方デプロイ
 
 ```bash
 # バックエンド先行デプロイ（必要な場合）
@@ -224,6 +224,28 @@ npm run build
 aws s3 sync dist/ s3://family-diary-app-stack-dev-websitebucket75c24d94-p25qzd67wmex/ --delete
 aws cloudfront create-invalidation --distribution-id E33OL17IXJUU9J --paths "/*"
 ```
+
+### 自動デプロイ（GitHub Actions）
+
+GitHub Actionsを使用した自動デプロイも利用可能です。
+
+**デプロイフロー:**
+```bash
+git checkout -b feature/new-feature
+# コード変更
+git commit -m "feat: Add new feature"
+git push origin feature/new-feature
+# GitHub上でPR作成 → 自動テスト実行
+# レビュー＆承認後、mainにマージ → 自動デプロイ
+```
+
+**セットアップ方法:** [docs/GITHUB_ACTIONS_SETUP.md](docs/GITHUB_ACTIONS_SETUP.md) を参照
+
+**メリット:**
+- ✅ PRマージで自動デプロイ
+- ✅ ビルド＆テスト自動化
+- ✅ デプロイ履歴の可視化
+- ✅ ロールバック容易
 
 ### レート制限の監視とメンテナンス
 
@@ -493,13 +515,33 @@ MIT License
 
 ---
 
+## GitHub Actions CI/CD
+
+本プロジェクトはGitHub Actionsによる自動デプロイに対応しています。
+
+**セットアップ手順**: [docs/GITHUB_ACTIONS_SETUP.md](docs/GITHUB_ACTIONS_SETUP.md)
+
+**ワークフロー:**
+- ✅ PR作成時: 自動ビルド＆テスト
+- ✅ mainブランチマージ時: 自動デプロイ（Backend → Frontend）
+- ✅ 手動トリガー対応
+
+**必要な設定:**
+1. AWS OIDC Provider作成
+2. GitHub Secrets設定（8項目）
+3. ワークフローファイル配置（自動）
+
+詳細は[セットアップガイド](docs/GITHUB_ACTIONS_SETUP.md)を参照してください。
+
+---
+
 ## 今後の改善予定
 
-- [ ] JWT Authorizer有効化でセキュリティ強化
-- [ ] リフレッシュトークン自動更新
+- [x] GitHub Actions CI/CD（完了）
+- [ ] JWT Authorizerルールの最適化（スコープ/ロール設計の見直し）
+- [ ] RefreshToken自動更新処理の監視・アラート整備
 - [ ] 複数枚写真のアップロード
 - [ ] 画像最適化・サムネイル生成
-- [ ] GitHub Actions CI/CD
 - [ ] コスト最適化（DynamoDB On-Demand vs Provisioned）
 
 ---
