@@ -170,11 +170,30 @@ jobs:
 
       - name: Force Update Lambda Function Code
         run: |
-          echo "📝 Forcing Lambda function code update..."
+          echo "📝 Forcing Lambda function code update with dependencies..."
           
-          # Zip backend code
           cd backend
-          zip -r lambda-deployment.zip api_handler.py prompt_generator_lambda.py database.py models.py requirements.txt -x "*.pyc" "__pycache__/*"
+          
+          # Create a clean build directory
+          rm -rf lambda_build
+          mkdir -p lambda_build
+          
+          # Copy source code
+          cp api_handler.py lambda_build/
+          cp prompt_generator_lambda.py lambda_build/
+          cp database.py lambda_build/
+          cp models.py lambda_build/
+          
+          # Install dependencies into lambda_build directory
+          echo "Installing dependencies for Lambda..."
+          pip install -r requirements-lambda.txt -t ./lambda_build/
+          
+          # Create zip file with code and dependencies
+          cd lambda_build
+          zip -r ../lambda-deployment.zip . -x "*.pyc" "__pycache__/*" "*.dist-info/*"
+          cd ..
+          
+          echo "✓ Lambda zip package created with dependencies"
           
           # Update API Lambda
           echo "Updating API Lambda function..."
@@ -194,7 +213,7 @@ jobs:
           
           # Wait for updates to complete
           sleep 5
-          echo "✓ Lambda functions updated with latest code"
+          echo "✓ Lambda functions updated with latest code and dependencies"
 
       - name: Verify Bedrock Access
         run: |
