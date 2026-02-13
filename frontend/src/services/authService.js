@@ -193,6 +193,7 @@ export const signOut = () => {
  * トークンを保存
  */
 const saveToken = (accessToken, idToken, refreshToken) => {
+  console.log('💾 [saveToken] Saving tokens to localStorage...')
   localStorage.setItem(TOKEN_KEY, idToken || accessToken)
   
   if (refreshToken) {
@@ -202,17 +203,21 @@ const saveToken = (accessToken, idToken, refreshToken) => {
   // JWTトークンからexpを取得して有効期限を設定
   try {
     const decoded = decodeToken(idToken || accessToken)
+    console.log('🔓 [saveToken] Decoded token:', { exp: decoded.exp, iat: decoded.iat })
+    
     if (decoded.exp) {
       const expiresAt = decoded.exp * 1000 // UNIX timestamp (秒) → ミリ秒
       localStorage.setItem(EXPIRES_AT_KEY, expiresAt.toString())
-      console.log('✅ Token saved. Expires at:', new Date(expiresAt).toLocaleString())
+      console.log(`✅ [saveToken] Token saved with expiry: ${new Date(expiresAt).toLocaleString()}`)
+      console.log(`   Key: ${EXPIRES_AT_KEY}, Value: ${expiresAt}`)
     } else {
       // expが取得できない場合は1時間後をデフォルトに
       const expiresAt = new Date(Date.now() + 3600000).getTime()
       localStorage.setItem(EXPIRES_AT_KEY, expiresAt.toString())
+      console.log(`⚠️ [saveToken] No exp in token, using default 1 hour: ${expiresAt}`)
     }
   } catch (error) {
-    console.warn('⚠️ Failed to parse token expiration, using default 1 hour')
+    console.warn('⚠️ [saveToken] Failed to parse token expiration, using default 1 hour')
     const expiresAt = new Date(Date.now() + 3600000).getTime()
     localStorage.setItem(EXPIRES_AT_KEY, expiresAt.toString())
   }
@@ -323,15 +328,48 @@ export const getUserId = () => {
 export const isLoggedIn = () => {
   const token = localStorage.getItem(TOKEN_KEY)
   const expiresAt = localStorage.getItem(EXPIRES_AT_KEY)
+  
+  console.log('═══════════════════════════════════════════════════════════')
+  console.log('🔍 [isLoggedIn] Checking login status...')
+  console.log(`   TOKEN_KEY ("${TOKEN_KEY}"): ${token ? `✅ exists (${token.substring(0, 20)}...)` : '❌ missing'}`)
+  console.log(`   EXPIRES_AT_KEY ("${EXPIRES_AT_KEY}"): ${expiresAt ? `✅ exists (${expiresAt})` : '❌ missing'}`)
+  
+  // LocalStorage の全キーを表示
+  console.log(`📦 LocalStorage contents (${localStorage.length} items):`)
+  if (localStorage.length === 0) {
+    console.log('   ⚠️ [EMPTY]')
+  } else {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      const value = localStorage.getItem(key)
+      const displayValue = key.includes('token') ? `${value.substring(0, 20)}...` : value
+      console.log(`   ${i + 1}. "${key}": ${displayValue}`)
+    }
+  }
 
   if (!token || !expiresAt) {
-    console.log('❌ No token or expiresAt found')
+    console.log(`   ❌ [FAIL] Token or expiresAt is missing`)
+    console.log(`      - token is ${token ? 'present' : 'NULL/UNDEFINED'}`)
+    console.log(`      - expiresAt is ${expiresAt ? 'present' : 'NULL/UNDEFINED'}`)
+    console.log('═══════════════════════════════════════════════════════════\n')
     return false
   }
 
-  // トークンが有効期限切れか確認
-  const isValid = Date.now() < parseInt(expiresAt, 10)
-  console.log(`✅ Token valid: ${isValid} (expires at: ${new Date(parseInt(expiresAt, 10)).toLocaleString()})`)
+  const expiresAtNum = parseInt(expiresAt, 10)
+  const now = Date.now()
+  const isValid = now < expiresAtNum
+  const remainingMs = expiresAtNum - now
+  const remainingSec = Math.round(remainingMs / 1000)
+  const remainingMin = Math.round(remainingMs / 60000)
+  
+  console.log(`⏰ [Token Validation]`)
+  console.log(`   Current time:  ${new Date(now).toLocaleString('ja-JP')} (${now}ms)`)
+  console.log(`   Expires at:    ${new Date(expiresAtNum).toLocaleString('ja-JP')} (${expiresAtNum}ms)`)
+  console.log(`   Remaining:     ${remainingMs}ms (${remainingSec}s / ${remainingMin}min)`)
+  console.log(`   Check: now < expires = ${now} < ${expiresAtNum} = ${isValid}`)
+  console.log(`   Result: ${isValid ? '✅ [SUCCESS] Token is VALID' : '❌ [FAIL] Token is EXPIRED'}`)
+  console.log('═══════════════════════════════════════════════════════════\n')
+  
   return isValid
 }
 
