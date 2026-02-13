@@ -128,11 +128,10 @@ export class FamilyDiaryMainStack extends cdk.Stack {
       pointInTimeRecoverySpecification: {
         pointInTimeRecoveryEnabled: false,
       },
-      ttl: {
-        attribute: 'expireAt',
-        enabled: true,  // Auto-delete old prompts after 30 days
-      },
     });
+
+    // Enable TTL (Time To Live) to auto-delete old prompts after 30 days
+    diaryPromptsTable.addTimeToLiveAttribute('expireAt');
 
     // === S3 Bucket for Photos ===
     const photoBucket = new s3.Bucket(this, 'PhotoBucket', {

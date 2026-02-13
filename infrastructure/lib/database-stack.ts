@@ -65,11 +65,10 @@ export class DatabaseStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY, // For dev environment only
       encryption: dynamodb.TableEncryption.AWS_MANAGED,
       pointInTimeRecovery: false, // Enable for production
-      ttl: {
-        attribute: 'expireAt',
-        enabled: true,  // Auto-delete old prompts after 30 days
-      },
     });
+
+    // Enable TTL (Time To Live) to auto-delete old prompts after 30 days
+    this.diaryPromptsTable.addTimeToLiveAttribute('expireAt');
 
     // Add GSI to query prompts by date range (for fetching recent prompts)
     this.diaryPromptsTable.addGlobalSecondaryIndex({
