@@ -145,13 +145,13 @@ jobs:
           cd backend
           zip -r lambda-deployment.zip api_handler.py prompt_generator_lambda.py database.py models.py requirements.txt -x "*.pyc" "__pycache__/*"
           
-          # Update API Handler Lambda
-          echo "Updating API Handler Lambda function..."
+          # Update API Lambda
+          echo "Updating API Lambda function..."
           aws lambda update-function-code \
-            --function-name family-diary-api-handler \
+            --function-name family-diary-api \
             --zip-file fileb://lambda-deployment.zip \
             --region ${{ env.AWS_REGION }} \
-            && echo "✓ API Handler Lambda updated" || echo "⚠ API Handler Lambda update"
+            && echo "✓ API Lambda updated" || echo "⚠ API Lambda update failed"
           
           # Update Prompt Generator Lambda
           echo "Updating Prompt Generator Lambda function..."
@@ -159,7 +159,7 @@ jobs:
             --function-name family-diary-prompt-generator \
             --zip-file fileb://lambda-deployment.zip \
             --region ${{ env.AWS_REGION }} \
-            && echo "✓ Prompt Generator Lambda updated" || echo "⚠ Prompt Generator Lambda update"
+            && echo "✓ Prompt Generator Lambda updated" || echo "⚠ Prompt Generator Lambda update failed"
           
           # Wait for updates to complete
           sleep 5
@@ -183,11 +183,16 @@ jobs:
             --region ${{ env.AWS_REGION }} \
             && echo "✓ diary_prompts table exists" || echo "⚠ diary_prompts table check"
           
-          # Check Lambda function
+          # Check Lambda functions
+          aws lambda get-function \
+            --function-name family-diary-api \
+            --region ${{ env.AWS_REGION }} \
+            && echo "✓ API Lambda exists" || echo "⚠ API Lambda check"
+          
           aws lambda get-function \
             --function-name family-diary-prompt-generator \
             --region ${{ env.AWS_REGION }} \
-            && echo "✓ Prompt generator Lambda exists" || echo "⚠ Lambda check"
+            && echo "✓ Prompt generator Lambda exists" || echo "⚠ Prompt generator Lambda check"
           
           # Check EventBridge rule
           aws events describe-rule \

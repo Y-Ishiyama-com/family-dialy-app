@@ -15,6 +15,7 @@ export interface ApiStackProps extends cdk.StackProps {
   userPool: cognito.UserPool;
   userPoolClient: cognito.UserPoolClient;
   diaryTable: dynamodb.Table;
+  diaryPromptsTable: dynamodb.Table;
   photoBucket: s3.Bucket;
 }
 
@@ -60,6 +61,7 @@ export class ApiStack extends cdk.Stack {
 
     // Grant Lambda permissions
     props.diaryTable.grantReadWriteData(this.diaryFunction);
+    props.diaryPromptsTable.grantReadData(this.diaryFunction);
     props.photoBucket.grantReadWrite(this.diaryFunction);
 
     // Create JWT Authorizer for Cognito
@@ -140,6 +142,13 @@ export class ApiStack extends cdk.Stack {
     const myYearResource = myCalendarResource.addResource('{year}');
     const myMonthResource = myYearResource.addResource('{month}');
     myMonthResource.addMethod('GET', lambdaIntegration, {
+      authorizer: authorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    // Prompt endpoint (認証必要)
+    const prompt = api.root.addResource('prompt');
+    prompt.addMethod('GET', lambdaIntegration, {
       authorizer: authorizer,
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });
