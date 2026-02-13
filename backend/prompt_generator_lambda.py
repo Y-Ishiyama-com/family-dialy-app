@@ -12,6 +12,7 @@ import boto3
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
 import sys
+import pytz
 
 # DynamoDB と Bedrock クライアント
 dynamodb = boto3.resource("dynamodb")
@@ -37,7 +38,8 @@ def get_recent_prompts(days: int = 14) -> List[Dict[str, Any]]:
         お題リスト
     """
     try:
-        start_date = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
+        jst = pytz.timezone('Asia/Tokyo')
+        start_date = (datetime.now(jst) - timedelta(days=days)).strftime("%Y-%m-%d")
         
         # テーブルスキャン
         response = prompts_table.scan(
@@ -61,7 +63,7 @@ def get_context_info() -> Dict[str, str]:
     Returns:
         コンテキスト情報
     """
-    today = datetime.utcnow()
+    today = datetime.now(pytz.timezone('Asia/Tokyo'))
     month = today.month
     day = today.day
     
@@ -198,13 +200,15 @@ def save_prompt(date: str, prompt: str, category: str = "daily") -> bool:
         成功した場合 True
     """
     try:
-        expire_date = datetime.utcnow() + timedelta(days=30)
+        jst = pytz.timezone('Asia/Tokyo')
+        now_jst = datetime.now(jst)
+        expire_date = now_jst + timedelta(days=30)
         
         item = {
             "date": date,
             "prompt": prompt,
             "category": category,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": now_jst.isoformat(),
             "expireAt": int(expire_date.timestamp()),
         }
         
@@ -224,7 +228,9 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     Returns:
         結果レスポンス
     """
-    print(f"Prompt generation Lambda triggered at {datetime.utcnow().isoformat()}")
+    jst = pytz.timezone('Asia/Tokyo')
+    now_jst = datetime.now(jst)
+    print(f"Prompt generation Lambda triggered at {now_jst.isoformat()}")
     
     try:
         # コンテキスト情報を取得
