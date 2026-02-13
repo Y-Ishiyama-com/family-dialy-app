@@ -318,16 +318,20 @@ def handle_get_my_calendar(username: str, year: int, month: int, headers: Dict) 
 
 def handle_get_prompt(date_str: str, headers: Dict) -> Dict:
     """指定日のお題を取得"""
+    print(f"[DEBUG] Fetching prompt for date: {date_str}")
     prompt_item = db.get_prompt(date_str)
+    print(f"[DEBUG] Prompt item retrieved: {prompt_item}")
     
     if not prompt_item:
         # お題が存在しない場合、デフォルトメッセージを返す
+        print(f"[DEBUG] No prompt found for {date_str}")
         return success_response({
             "date": date_str,
             "prompt": None,
             "message": "お題はまだ生成されていません"
         }, headers)
     
+    print(f"[DEBUG] Returning prompt: {prompt_item.get('prompt')}")
     return success_response({
         "date": prompt_item.get("date"),
         "prompt": prompt_item.get("prompt"),
