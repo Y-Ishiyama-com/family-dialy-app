@@ -62,6 +62,15 @@ function App() {
   }
 
   const handleLoginSuccess = () => {
+    // localStorageの直後の内容を確認
+    const token = localStorage.getItem('auth_token')
+    const expiresAt = localStorage.getItem('expires_at')
+    console.log('🔍 [handleLoginSuccess] Immediate check:')
+    console.log('   auth_token present:', !!token)
+    console.log('   expires_at present:', !!expiresAt)
+    if (token) console.log('   token value:', token.substring(0, 50) + '...')
+    if (expiresAt) console.log('   expiresAt value:', expiresAt)
+    
     setLoggedIn(true)
   }
 
