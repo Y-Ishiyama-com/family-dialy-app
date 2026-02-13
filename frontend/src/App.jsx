@@ -71,6 +71,27 @@ function App() {
     if (token) console.log('   token value:', token.substring(0, 50) + '...')
     if (expiresAt) console.log('   expiresAt value:', expiresAt)
     
+    // localStorage変更を監視
+    const originalSetItem = localStorage.setItem
+    const originalRemoveItem = localStorage.removeItem
+    const originalClear = localStorage.clear
+    
+    localStorage.setItem = function(key, value) {
+      console.log('🟢 [localStorage.setItem]', key, value?.substring?.(0, 40) || value)
+      return originalSetItem.call(this, key, value)
+    }
+    localStorage.removeItem = function(key) {
+      console.log('🔴 [localStorage.removeItem]', key, '← WHO IS DELETING THIS?')
+      console.trace()
+      return originalRemoveItem.call(this, key)
+    }
+    localStorage.clear = function() {
+      console.log('🔴 [localStorage.clear] STORAGE CLEARED!')
+      console.trace()
+      return originalClear.call(this)
+    }
+    
+    console.log('✅ [handleLoginSuccess] localStorage监视已启用')
     setLoggedIn(true)
   }
 
