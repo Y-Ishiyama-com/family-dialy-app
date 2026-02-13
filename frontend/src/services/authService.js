@@ -317,10 +317,10 @@ export const getUserId = () => {
 }
 
 /**
- * ユーザーがログイン済みか確認
+ * ユーザーがログイン済みか確認（同期的）
  */
 export const isLoggedIn = () => {
-  const token = getToken()
+  const token = localStorage.getItem(TOKEN_KEY)
   const expiresAt = localStorage.getItem(EXPIRES_AT_KEY)
 
   if (!token || !expiresAt) {
@@ -328,7 +328,11 @@ export const isLoggedIn = () => {
   }
 
   // トークンが有効期限切れか確認
-  return Date.now() < parseInt(expiresAt, 10)
+  const expiresAtTime = parseInt(expiresAt, 10)
+  const now = Date.now()
+  const isValid = now < expiresAtTime
+
+  return isValid
 }
 
 /**
