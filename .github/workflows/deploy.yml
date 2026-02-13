@@ -121,6 +121,15 @@ jobs:
         working-directory: infrastructure
         run: npm run build
 
+      - name: Clear CDK Context Cache
+        working-directory: infrastructure
+        run: |
+          if [ -f cdk.context.json ]; then
+            echo "Removing cdk.context.json to force refresh..."
+            rm cdk.context.json
+          fi
+          echo "✓ CDK context cache cleared"
+
       - name: CDK Deploy
         id: deploy
         working-directory: infrastructure
