@@ -336,6 +336,35 @@ export class FamilyDiaryMainStack extends cdk.Stack {
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });
 
+    // Daily Prompt endpoint (認証不要)
+    const promptResource = api.root.addResource('prompt');
+    promptResource.addMethod('GET', lambdaIntegration);
+    promptResource.addMethod('OPTIONS', new apigateway.MockIntegration({
+      integrationResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Headers': "'Content-Type,Authorization'",
+            'method.response.header.Access-Control-Allow-Methods': "'GET,OPTIONS'",
+            'method.response.header.Access-Control-Allow-Origin': "'https://d1l985y7ocpo2p.cloudfront.net'",
+            'method.response.header.Access-Control-Allow-Credentials': "'true'",
+          },
+        },
+      ],
+    }), {
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Headers': true,
+            'method.response.header.Access-Control-Allow-Methods': true,
+            'method.response.header.Access-Control-Allow-Origin': true,
+            'method.response.header.Access-Control-Allow-Credentials': true,
+          },
+        },
+      ],
+    });
+
     // === Gateway Responses for CORS on Auth Errors ===
     // 401 Unauthorizedレスポンスに明示的にCORSヘッダーを追加
     api.addGatewayResponse('Unauthorized', {
