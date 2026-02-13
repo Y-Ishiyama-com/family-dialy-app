@@ -131,9 +131,10 @@ jobs:
       - name: Verify Bedrock Access
         run: |
           echo "Checking Bedrock model availability..."
-          aws bedrock-runtime get-foundation-model \
-            --model-identifier ${{ env.BEDROCK_MODEL_ID }} \
-            --region ${{ env.AWS_REGION }} || echo "⚠ Bedrock model check (expected in production region)"
+          aws bedrock list-foundation-models \
+            --region ${{ env.AWS_REGION }} \
+            --query "modelSummaries[?modelId=='${{ env.BEDROCK_MODEL_ID }}'].modelId" \
+            --output text | grep -q "${{ env.BEDROCK_MODEL_ID }}" && echo "✓ Bedrock model is available" || echo "⚠ Bedrock model access may need to be enabled in AWS Console"
 
       - name: Verify Deployment Resources
         run: |
