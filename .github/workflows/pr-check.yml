@@ -99,14 +99,66 @@ jobs:
           pip install pytest
           pytest --if-present || echo "No tests found"
 
+  validate-backend:
+    name: Validate Backend Code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Validate Python syntax
+        working-directory: backend
+        run: |
+          python -m py_compile api_handler.py
+          python -m py_compile prompt_generator_lambda.py
+          python -m py_compile database.py
+          python -m py_compile models.py
+          echo "✓ All Python files compiled successfully"
+
+      - name: Check module imports
+        working-directory: backend
+        run: |
+          python -c "import models; print('✓ models module imports OK')"
+          python -c "import database; print('✓ database module imports OK')"
+          echo "✓ All modules are importable"
+
   pr-summary:
     name: PR Summary
     runs-on: ubuntu-latest
-    needs: [lint-frontend, build-frontend, build-infrastructure, test-backend]
+    needs: [lint-frontend, build-frontend, build-infrastructure, test-backend, validate-backend]
     if: always()
     steps:
+      - name: Check job status
+        run: |
+          if [[ "${{ needs.lint-frontend.result }}" == "failure" ]] || \
+             [[ "${{ needs.build-frontend.result }}" == "failure" ]] || \
+             [[ "${{ needs.build-infrastructure.result }}" == "failure" ]] || \
+             [[ "${{ needs.test-backend.result }}" == "failure" ]] || \
+             [[ "${{ needs.validate-backend.result }}" == "failure" ]]; then
+            echo "❌ Some checks failed"
+            exit 1
+          fi
+          echo "✅ All checks passed!"
+
       - name: Summary
+        if: success()
         run: |
           echo "### ✅ PR Checks Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "All builds and tests passed successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "All builds, tests, and validations passed successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Checked Items:**" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Frontend linting" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Frontend build" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Infrastructure build & CDK synth" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Backend tests" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Python code validation" >> $GITHUB_STEP_SUMMARY

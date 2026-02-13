@@ -165,3 +165,12 @@ export const getMyCalendar = async (year, month) => {
 export const healthCheck = async () => {
   return fetch(`${API_ENDPOINT}/health`).then((res) => res.json())
 }
+
+/**
+ * 指定日のお題を取得
+ */
+export const getPrompt = async (date = null) => {
+  // dateが指定されない場合は今日の日付を使用
+  const queryDate = date || new Date().toISOString().split('T')[0]
+  return apiCall(`/prompt?date=${queryDate}`, { method: 'GET' })
+}

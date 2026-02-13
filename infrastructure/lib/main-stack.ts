@@ -8,6 +8,8 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import { S3BucketOrigin } from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as events from 'aws-cdk-lib/aws-events';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as path from 'path';
 
 /**
@@ -113,6 +115,22 @@ export class FamilyDiaryMainStack extends cdk.Stack {
       projectionType: dynamodb.ProjectionType.ALL,
     });
 
+    // === DynamoDB Table for Daily Prompts ===
+    const diaryPromptsTable = new dynamodb.Table(this, 'DiaryPromptsTable', {
+      tableName: 'diary_prompts',
+      partitionKey: {
+        name: 'date',
+        type: dynamodb.AttributeType.STRING,  // YYYY-MM-DD format
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      encryption: dynamodb.TableEncryption.AWS_MANAGED,
+      pointInTimeRecoverySpecification: {
+        pointInTimeRecoveryEnabled: false,
+      },
+      timeToLiveAttribute: 'expireAt',  // Auto-delete old prompts after 30 days
+    });
+
     // === S3 Bucket for Photos ===
     const photoBucket = new s3.Bucket(this, 'PhotoBucket', {
       encryption: s3.BucketEncryption.S3_MANAGED,
@@ -152,6 +170,7 @@ export class FamilyDiaryMainStack extends cdk.Stack {
       memorySize: 512,
       environment: {
         DYNAMODB_TABLE_NAME: diaryTable.tableName,
+        DYNAMODB_PROMPTS_TABLE_NAME: diaryPromptsTable.tableName,
         PHOTO_BUCKET_NAME: photoBucket.bucketName,
         COGNITO_USER_POOL_ID: userPool.userPoolId,
         COGNITO_CLIENT_ID: userPoolClient.userPoolClientId,
@@ -165,11 +184,72 @@ export class FamilyDiaryMainStack extends cdk.Stack {
 
     // Grant permissions
     diaryTable.grantReadWriteData(diaryFunction);
+    diaryPromptsTable.grantReadWriteData(diaryFunction);
     photoBucket.grantReadWrite(diaryFunction);
     diaryFunction.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ['cognito-idp:GetUser', 'cognito-idp:ListUsers'],
         resources: [userPool.userPoolArn],
+      })
+    );
+
+    // === Lambda Function for Daily Prompt Generation ===
+    const promptGeneratorFunction = new lambda.Function(this, 'PromptGeneratorFunction', {
+      functionName: 'family-diary-prompt-generator',
+      runtime: lambda.Runtime.PYTHON_3_11,
+      handler: 'prompt_generator_lambda.lambda_handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../backend'), {
+        exclude: [
+          'auth.py',
+          'main.py',
+          'api_handler.py',
+          'lambda_handler.py',
+          'requirements.txt',
+          'requirements-lambda.txt',
+          '__pycache__',
+          '*.pyc',
+          '.venv',
+          'layers',
+        ],
+      }),
+      timeout: cdk.Duration.seconds(60),
+      memorySize: 256,
+      environment: {
+        DYNAMODB_PROMPTS_TABLE_NAME: diaryPromptsTable.tableName,
+        BEDROCK_MODEL_ID: 'anthropic.claude-3-sonnet-20240229-v1:0',
+      },
+    });
+
+    // Grant permissions for Prompt Generator Lambda
+    diaryPromptsTable.grantReadWriteData(promptGeneratorFunction);
+    
+    // Add Bedrock permissions
+    promptGeneratorFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['bedrock:InvokeModel'],
+        resources: [
+          `arn:aws:bedrock:${cdk.Aws.REGION}::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0`,
+        ],
+      })
+    );
+
+    // === EventBridge Rule for Daily Prompt Generation ===
+    // Schedule: Daily at 9:00 AM JST (00:00 UTC)
+    const promptGenerationRule = new events.Rule(this, 'DailyPromptGenerationRule', {
+      schedule: events.Schedule.cron({
+        hour: '0',      // 00:00 UTC = 09:00 JST (+9)
+        minute: '0',
+        day: '*',
+        month: '*',
+        year: '*',
+      }),
+      description: 'Trigger daily prompt generation (9:00 AM JST)',
+    });
+
+    // Add Lambda as target
+    promptGenerationRule.addTarget(
+      new targets.LambdaFunction(promptGeneratorFunction, {
+        deadLetterQueue: undefined,  // Optional: add DLQ for failed invocations
       })
     );
 
@@ -419,6 +499,11 @@ export class FamilyDiaryMainStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'PhotoBucketName', {
       value: photoBucket.bucketName,
       description: 'S3 bucket for photo storage',
+    });
+
+    new cdk.CfnOutput(this, 'PromptTableName', {
+      value: diaryPromptsTable.tableName,
+      description: 'DynamoDB table for daily prompts',
     });
   }
 }
