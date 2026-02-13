@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Optional, List
 import os
 import uuid
+import pytz
 from models import DiaryEntry
 
 
@@ -26,14 +27,16 @@ class InMemoryDatabase:
         photo_url: Optional[str] = None,
     ) -> dict:
         key = f"{user_id}#{date}"
+        jst = pytz.timezone('Asia/Tokyo')
+        now_jst = datetime.now(jst)
         item = {
             "user_id#date": key,
             "user_id": user_id,
             "date": date,
             "entry_text": entry_text,
             "is_public": "true" if is_public else "false",
-            "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat(),
+            "created_at": now_jst.isoformat(),
+            "updated_at": now_jst.isoformat(),
         }
         if photo_url:
             item["photo_url"] = photo_url
@@ -58,7 +61,8 @@ class InMemoryDatabase:
             raise KeyError(f"Entry not found: {key}")
         
         item = self.data[key]
-        item["updated_at"] = datetime.now().isoformat()
+        jst = pytz.timezone('Asia/Tokyo')
+        item["updated_at"] = datetime.now(jst).isoformat()
         
         if entry_text is not None:
             item["entry_text"] = entry_text
@@ -156,14 +160,16 @@ class DiaryDatabase:
         if self._in_memory:
             return self._in_memory.put_entry(user_id, date, entry_text, is_public, photo_url)
         
+        jst = pytz.timezone('Asia/Tokyo')
+        now_jst = datetime.now(jst)
         item = {
             "user_id#date": f"{user_id}#{date}",
             "user_id": user_id,
             "date": date,
             "entry_text": entry_text,
             "is_public": "true" if is_public else "false",  # String for GSI
-            "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat(),
+            "created_at": now_jst.isoformat(),
+            "updated_at": now_jst.isoformat(),
         }
         if photo_url:
             item["photo_url"] = photo_url
@@ -214,8 +220,9 @@ class DiaryDatabase:
         if self._in_memory:
             return self._in_memory.update_entry(user_id, date, entry_text, is_public, photo_url)
         
+        jst = pytz.timezone('Asia/Tokyo')
         update_expr = "SET updated_at = :updated_at"
-        expr_attr_values = {":updated_at": datetime.now().isoformat()}
+        expr_attr_values = {":updated_at": datetime.now(jst).isoformat()}
 
         if entry_text is not None:
             update_expr += ", entry_text = :entry_text"
@@ -307,6 +314,7 @@ class DiaryDatabase:
     # 新しいメソッド（API Gateway統合用）
     def save_diary_entry(self, entry: DiaryEntry) -> dict:
         """日記エントリを保存"""
+        jst = pytz.timezone('Asia/Tokyo')
         item = {
             "user_id#date": f"{entry.username}#{entry.date}",
             "user_id": entry.username,
@@ -317,7 +325,7 @@ class DiaryDatabase:
             "photos": entry.photos,
             "is_public": "true" if entry.is_public else "false",  # DynamoDBインデックスは文字列型を期待
             "created_at": entry.created_at,
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.now(jst).isoformat(),
         }
         
         if self._in_memory:
@@ -488,13 +496,15 @@ class DiaryDatabase:
             raise Exception("Prompts table not available")
         
         from datetime import timedelta
-        expire_date = datetime.now() + timedelta(days=30)
+        jst = pytz.timezone('Asia/Tokyo')
+        now_jst = datetime.now(jst)
+        expire_date = now_jst + timedelta(days=30)
         
         item = {
             "date": date,
             "prompt": prompt,
             "category": category or "general",
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": now_jst.isoformat(),
             "expireAt": int(expire_date.timestamp()),
         }
         
@@ -545,7 +555,8 @@ class DiaryDatabase:
         
         try:
             from datetime import timedelta, datetime
-            start_date = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
+            jst = pytz.timezone('Asia/Tokyo')
+            start_date = (datetime.now(jst) - timedelta(days=days)).strftime("%Y-%m-%d")
             
             # テーブルスキャン（開発環境用。本番ではGSIやQuery使用を推奨）
             response = self._prompts_table.scan(

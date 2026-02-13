@@ -8,6 +8,7 @@ import os
 from typing import Any, Dict
 from datetime import datetime
 import base64
+import pytz
 
 from database import DiaryDatabase
 from models import DiaryEntry
@@ -152,7 +153,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         elif path == "/prompt" and method == "GET":
             date_str = query_params.get("date") if query_params else None
             if not date_str:
-                date_str = datetime.utcnow().strftime("%Y-%m-%d")
+                jst = pytz.timezone('Asia/Tokyo')
+                date_str = datetime.now(jst).strftime("%Y-%m-%d")
             return handle_get_prompt(date_str, cors_headers)
         
         # 404
@@ -257,7 +259,8 @@ def handle_upload_photo(username: str, date_str: str, body: str, headers: Dict) 
     
     # S3にアップロード（S3キーを返す）
     try:
-        photo_key = f"{username}/{date_str}/{datetime.utcnow().timestamp()}.jpg"
+        jst = pytz.timezone('Asia/Tokyo')
+        photo_key = f"{username}/{date_str}/{datetime.now(jst).timestamp()}.jpg"
         photo_key = db.upload_photo(username, date_str, image_bytes, photo_key)
         
         # 表示用に24時間有効な署名付きURLも生成して返す
