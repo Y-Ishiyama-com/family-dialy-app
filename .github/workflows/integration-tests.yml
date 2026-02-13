@@ -144,10 +144,10 @@ jobs:
 
       - name: Check EventBridge rule
         run: |
-          echo "Checking DailyPromptGenerationRule..."
+          echo "Checking DailyPromptGenerationRule-Updated..."
           
           RULE_STATE=$(aws events describe-rule \
-            --name DailyPromptGenerationRule \
+            --name DailyPromptGenerationRule-Updated \
             --query 'State' \
             --output text 2>/dev/null || echo "NOT_FOUND")
           
@@ -156,7 +156,7 @@ jobs:
             
             # Get rule schedule
             SCHEDULE=$(aws events describe-rule \
-              --name DailyPromptGenerationRule \
+              --name DailyPromptGenerationRule-Updated \
               --query 'ScheduleExpression' \
               --output text)
             echo "  Schedule: $SCHEDULE"
@@ -172,7 +172,7 @@ jobs:
           echo "Checking EventBridge targets..."
           
           TARGETS=$(aws events list-targets-by-rule \
-            --rule DailyPromptGenerationRule \
+            --rule DailyPromptGenerationRule-Updated \
             --output json 2>/dev/null || echo '{"Targets":[]}')
           
           TARGET_COUNT=$(echo "$TARGETS" | jq '.Targets | length')

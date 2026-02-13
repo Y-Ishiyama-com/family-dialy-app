@@ -227,7 +227,7 @@ jobs:
           
           # Check EventBridge rule
           aws events describe-rule \
-            --name DailyPromptGenerationRule \
+            --name DailyPromptGenerationRule-Updated \
             --region ${{ env.AWS_REGION }} \
             && echo "✓ EventBridge rule exists" || echo "⚠ EventBridge rule check"
 

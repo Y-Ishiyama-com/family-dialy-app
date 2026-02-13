@@ -112,11 +112,11 @@ aws dynamodb get-item \
 ```bash
 # ルールが有効になっているか確認
 aws events describe-rule \
-  --name DailyPromptGenerationRule
+  --name DailyPromptGenerationRule-Updated
 
 # ターゲットが設定されているか確認
 aws events list-targets-by-rule \
-  --rule DailyPromptGenerationRule
+  --rule DailyPromptGenerationRule-Updated
 ```
 
 #### 4. CloudWatch Logs の確認
@@ -171,7 +171,7 @@ At 2024-12-15T09:00:00Z Lambda function timed out
 **チェック項目**:
 - [ ] EventBridge ルールが「有効」になっているか
   ```bash
-  aws events describe-rule --name DailyPromptGenerationRule
+  aws events describe-rule --name DailyPromptGenerationRule-Updated
   # "State": "ENABLED" であることを確認
   ```
 - [ ] Lambda にルールの実行権限があるか

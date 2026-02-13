@@ -110,7 +110,7 @@ cdk deploy   # デプロイ実行
 **デプロイで追加されるリソース**:
 - DynamoDBテーブル: `diary_prompts`
 - Lambda関数: `family-diary-prompt-generator`
-- EventBridgeルール: `DailyPromptGenerationRule`
+- EventBridgeルール: `DailyPromptGenerationRule-Updated`
 - IAM ロール・ポリシー
 
 ### 3. Lambdaレイヤーの更新（オプション）
@@ -178,7 +178,7 @@ cat response.json
 - [ ] CloudWatch Logsでエラーメッセージを確認
 
 ### EventBridgeが実行されない
-- [ ] EventBridgeルール `DailyPromptGenerationRule` が有効になっているか
+- [ ] EventBridgeルール `DailyPromptGenerationRule-Updated` が有効になっているか
 - [ ] タイムゾーン設定が正確か（UTC 00:00 = JST 09:00）
 - [ ] CloudWatch Logs でルールの実行履歴を確認
 

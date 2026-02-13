@@ -77,16 +77,16 @@ def check_eventbridge_rule():
     print("\n✓ EventBridge ルール確認")
     try:
         client = boto3.client('events')
-        response = client.describe_rule(Name='DailyPromptGenerationRule')
+        response = client.describe_rule(Name='DailyPromptGenerationRule-Updated')
         
         rule = response
-        print(f"  ✓ ルール 'DailyPromptGenerationRule' が存在します")
+        print(f"  ✓ ルール 'DailyPromptGenerationRule-Updated' が存在します")
         print(f"    - State: {rule['State']}")
         print(f"    - Schedule: {rule.get('ScheduleExpression', 'N/A')}")
         print(f"    - Description: {rule.get('Description', 'N/A')}")
         
         # ターゲットを確認
-        targets = client.list_targets_by_rule(Rule='DailyPromptGenerationRule')
+        targets = client.list_targets_by_rule(Rule='DailyPromptGenerationRule-Updated')
         if targets['Targets']:
             print(f"    ✓ ターゲット Lambda: {targets['Targets'][0]['Arn']}")
         else:
