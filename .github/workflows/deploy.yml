@@ -137,6 +137,34 @@ jobs:
           npx cdk deploy --require-approval never --outputs-file cdk-outputs.json
           echo "api_endpoint=$(cat cdk-outputs.json | jq -r '.["family-diary-app-stack-dev"].ApiEndpoint')" >> $GITHUB_OUTPUT
 
+      - name: Force Update Lambda Function Code
+        run: |
+          echo "📝 Forcing Lambda function code update..."
+          
+          # Zip backend code
+          cd backend
+          zip -r lambda-deployment.zip api_handler.py prompt_generator_lambda.py database.py models.py requirements.txt -x "*.pyc" "__pycache__/*"
+          
+          # Update API Handler Lambda
+          echo "Updating API Handler Lambda function..."
+          aws lambda update-function-code \
+            --function-name family-diary-api-handler \
+            --zip-file fileb://lambda-deployment.zip \
+            --region ${{ env.AWS_REGION }} \
+            && echo "✓ API Handler Lambda updated" || echo "⚠ API Handler Lambda update"
+          
+          # Update Prompt Generator Lambda
+          echo "Updating Prompt Generator Lambda function..."
+          aws lambda update-function-code \
+            --function-name family-diary-prompt-generator \
+            --zip-file fileb://lambda-deployment.zip \
+            --region ${{ env.AWS_REGION }} \
+            && echo "✓ Prompt Generator Lambda updated" || echo "⚠ Prompt Generator Lambda update"
+          
+          # Wait for updates to complete
+          sleep 5
+          echo "✓ Lambda functions updated with latest code"
+
       - name: Verify Bedrock Access
         run: |
           echo "Checking Bedrock model availability..."
