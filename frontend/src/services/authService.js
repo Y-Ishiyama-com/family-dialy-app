@@ -9,30 +9,6 @@ const TOKEN_KEY = 'auth_token'
 const REFRESH_TOKEN_KEY = 'refresh_token'
 const USER_ID_KEY = 'user_id'
 const EXPIRES_AT_KEY = 'expires_at'
-const DEBUG_LOG_KEY = 'auth_debug_logs'
-
-/**
- * ログを保存（localStorage + console）
- */
-const appendLog = (message) => {
-  const now = new Date().toLocaleTimeString('ja-JP')
-  const logMessage = `[${now}] ${message}`
-  
-  console.log(logMessage)
-  
-  // localStorage に保存（最新100件を保持）
-  try {
-    let logs = localStorage.getItem(DEBUG_LOG_KEY)
-    logs = logs ? JSON.parse(logs) : []
-    logs.push(logMessage)
-    if (logs.length > 100) {
-      logs.shift()
-    }
-    localStorage.setItem(DEBUG_LOG_KEY, JSON.stringify(logs))
-  } catch (error) {
-    console.warn('Failed to save debug log:', error)
-  }
-}
 
 /**
  * ユーザーをサインアップ
@@ -101,7 +77,6 @@ export const signIn = async (username, password) => {
 
     if (!response.ok) {
       const errorData = await response.json()
-      appendLog(`❌ [signIn] Sign in failed: ${errorData.message || 'Unknown error'}`)
       throw new Error(errorData.message || 'Sign in failed')
     }
 
@@ -109,7 +84,6 @@ export const signIn = async (username, password) => {
     
     // NEW_PASSWORD_REQUIRED チャレンジの場合
     if (data.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
-      appendLog(`⚠️ [signIn] Password change required`)
       throw new Error('NEW_PASSWORD_REQUIRED:' + data.Session)
     }
     
@@ -117,7 +91,6 @@ export const signIn = async (username, password) => {
 
     // トークンを保存
     if (AuthenticationResult) {
-      appendLog(`✅ [signIn] Sign in successful, saving tokens...`)
       saveToken(
         AuthenticationResult.AccessToken,
         AuthenticationResult.IdToken,
@@ -127,10 +100,8 @@ export const signIn = async (username, password) => {
       const decoded = decodeToken(AuthenticationResult.IdToken)
       const username = decoded['cognito:username'] || decoded.sub
       saveUserId(username)
-      appendLog(`✅ [signIn] Tokens saved for user: ${username}`)
     }
   } catch (error) {
-    appendLog(`❌ [signIn] Error: ${error.message}`)
     throw error
   }
 }
@@ -220,7 +191,6 @@ export const signOut = () => {
  * トークンを保存
  */
 const saveToken = (accessToken, idToken, refreshToken) => {
-  appendLog('💾 [saveToken] Saving tokens to localStorage...')
   localStorage.setItem(TOKEN_KEY, idToken || accessToken)
   
   if (refreshToken) {
@@ -230,20 +200,16 @@ const saveToken = (accessToken, idToken, refreshToken) => {
   // JWTトークンからexpを取得して有効期限を設定
   try {
     const decoded = decodeToken(idToken || accessToken)
-    appendLog(`🔓 [saveToken] Decoded token exp: ${decoded.exp}`)
     
     if (decoded.exp) {
       const expiresAt = decoded.exp * 1000 // UNIX timestamp (秒) → ミリ秒
       localStorage.setItem(EXPIRES_AT_KEY, expiresAt.toString())
-      appendLog(`✅ [saveToken] Token saved with expiry: ${new Date(expiresAt).toLocaleString('ja-JP')}`)
     } else {
       // expが取得できない場合は1時間後をデフォルトに
       const expiresAt = new Date(Date.now() + 3600000).getTime()
       localStorage.setItem(EXPIRES_AT_KEY, expiresAt.toString())
-      appendLog(`⚠️ [saveToken] No exp in token, using default 1 hour`)
     }
   } catch (error) {
-    appendLog(`⚠️ [saveToken] Failed to parse token expiration: ${error.message}`)
     const expiresAt = new Date(Date.now() + 3600000).getTime()
     localStorage.setItem(EXPIRES_AT_KEY, expiresAt.toString())
   }
@@ -354,22 +320,15 @@ export const getUserId = () => {
 export const isLoggedIn = () => {
   const token = localStorage.getItem(TOKEN_KEY)
   const expiresAt = localStorage.getItem(EXPIRES_AT_KEY)
-  
-  appendLog(`🔍 [isLoggedIn] TOKEN_KEY: ${token ? '✅ exists' : '❌ missing'}, EXPIRES_AT_KEY: ${expiresAt ? '✅ exists' : '❌ missing'}`)
 
   if (!token || !expiresAt) {
-    appendLog(`❌ [isLoggedIn] Token or expiresAt missing - NOT LOGGED IN`)
     return false
   }
 
   const expiresAtNum = parseInt(expiresAt, 10)
   const now = Date.now()
-  const isValid = now < expiresAtNum
-  const remaining = Math.round((expiresAtNum - now) / 1000)
   
-  appendLog(`⏰ [isLoggedIn] Token valid: ${isValid}, Remaining: ${remaining}s`)
-  
-  return isValid
+  return now < expiresAtNum
 }
 
 /**
