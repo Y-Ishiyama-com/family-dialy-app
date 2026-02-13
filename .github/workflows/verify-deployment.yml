@@ -31,6 +31,10 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install Python dependencies
+        run: |
+          pip install boto3
+
       - name: Run deployment verification script
         working-directory: docs
         run: |

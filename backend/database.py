@@ -457,6 +457,7 @@ class DiaryDatabase:
         """Prompts テーブルを初期化（遅延初期化）"""
         if not hasattr(self, '_prompts_table'):
             prompts_table_name = os.environ.get("DYNAMODB_PROMPTS_TABLE_NAME")
+            print(f"[DEBUG] DYNAMODB_PROMPTS_TABLE_NAME from env: {prompts_table_name}")
             if not prompts_table_name:
                 raise ValueError("DYNAMODB_PROMPTS_TABLE_NAME environment variable not set")
             
@@ -465,6 +466,7 @@ class DiaryDatabase:
                 self._prompts_table = dynamodb.Table(prompts_table_name)
                 # テーブル存在確認
                 self._prompts_table.table_status
+                print(f"[DEBUG] Successfully initialized prompts table: {prompts_table_name}")
             except Exception as e:
                 print(f"Warning: Could not initialize prompts table: {e}")
                 self._prompts_table = None
@@ -511,13 +513,20 @@ class DiaryDatabase:
         """
         self.__init_prompts_table()
         if not self._prompts_table:
+            print(f"[DEBUG] Prompts table not initialized")
             return None
         
         try:
+            print(f"[DEBUG] Querying prompts table for date: {date}")
             response = self._prompts_table.get_item(Key={"date": date})
-            return response.get("Item")
+            item = response.get("Item")
+            print(f"[DEBUG] DynamoDB response: {response}")
+            print(f"[DEBUG] Item found: {item}")
+            return item
         except Exception as e:
             print(f"Error getting prompt for {date}: {e}")
+            import traceback
+            traceback.print_exc()
             return None
     
     def get_recent_prompts(self, days: int = 14) -> List[dict]:
