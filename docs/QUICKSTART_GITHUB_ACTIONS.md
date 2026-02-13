@@ -33,9 +33,24 @@ aws iam get-role --role-name GitHubActionsDeployRole --query 'Role.Arn' --output
 
 ### Step 2: GitHub Secrets設定（5分）
 
+GitHub Web UI で設定: https://github.com/YOUR_USERNAME/family-diary-app/settings/secrets/actions
+
+**または GitHub CLI で一括設定:**
+
 ```bash
-# GitHub CLIで一括設定
-gh secret set AWS_ROLE_ARN --body "arn:aws:iam::772438672412:role/GitHubActionsDeployRole"
+# 先に AWS から必要な情報を取得
+AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+ROLE_ARN="arn:aws:iam::$AWS_ACCOUNT_ID:role/GitHubActionsDeployRole"
+
+# CDK アウトプットから取得（デプロイ後）
+# CDK Deploy 実行後、以下を実行:
+aws cloudformation describe-stacks \
+  --stack-name family-diary-app-stack-dev \
+  --query 'Stacks[0].Outputs' \
+  --output table
+
+# Secrets 設定
+gh secret set AWS_ROLE_ARN --body "$ROLE_ARN"
 gh secret set S3_BUCKET_NAME --body "family-diary-app-stack-dev-websitebucket75c24d94-p25qzd67wmex"
 gh secret set CLOUDFRONT_DISTRIBUTION_ID --body "E33OL17IXJUU9J"
 gh secret set VITE_API_ENDPOINT --body "https://gu4ywyuipf.execute-api.us-west-2.amazonaws.com/prod/"
@@ -44,13 +59,14 @@ gh secret set VITE_COGNITO_CLIENT_ID --body "1nc230a14fr7k8jn4va0r8ulcd"
 gh secret set VITE_COGNITO_REDIRECT_URI --body "https://d1l985y7ocpo2p.cloudfront.net/"
 ```
 
-または[GitHub Web UI](https://github.com/YOUR_USERNAME/family-diary-app/settings/secrets/actions)で手動設定
-
 ### Step 3: ワークフローファイル確認（1分）
 
 すでに作成済み:
 - `.github/workflows/deploy.yml`
 - `.github/workflows/pr-check.yml`
+- `.github/workflows/security-checks.yml`
+- `.github/workflows/integration-tests.yml`
+- `.github/workflows/verify-deployment.yml`
 
 ```bash
 # 確認
@@ -61,7 +77,7 @@ ls -la .github/workflows/
 
 ```bash
 # 軽微な変更をコミット
-git add .
+git add .github/workflows/*
 git commit -m "ci: Setup GitHub Actions"
 git push origin main
 
@@ -74,6 +90,7 @@ git push origin main
 1. **Actions タブ**で "Deploy to AWS" ワークフローが実行されることを確認
 2. すべてのジョブ（test-frontend, test-backend, deploy-backend, deploy-frontend）が成功
 3. https://d1l985y7ocpo2p.cloudfront.net にアクセスして動作確認
+4. 日記編集画面で「今日のお題」が表示されるか確認
 
 ---
 
@@ -83,7 +100,7 @@ git push origin main
 - [ ] IAMロール作成＆ARN取得済み
 - [ ] GitHub Secrets 7項目設定済み
 - [ ] mainブランチにpushして自動デプロイ成功
-- [ ] 本番サイトで動作確認完了
+- [ ] 本番サイトで動作確認完了（日記・お題機能）
 
 ---
 
@@ -91,12 +108,95 @@ git push origin main
 
 ```bash
 # S3バケット名
-aws s3 ls | grep family-diary
+aws cloudformation describe-stacks \
+  --stack-name family-diary-app-stack-dev \
+  --query 'Stacks[0].Outputs[?OutputKey==`WebsiteBucketName`].OutputValue' \
+  --output text
 
 # CloudFront Distribution ID
-aws cloudfront list-distributions \
-  --query "DistributionList.Items[?Comment=='Family Diary Website Distribution'].Id" \
+aws cloudformation describe-stacks \
+  --stack-name family-diary-app-stack-dev \
+  --query 'Stacks[0].Outputs[?OutputKey==`DistributionId`].OutputValue' \
   --output text
+
+# API Endpoint
+aws cloudformation describe-stacks \
+  --stack-name family-diary-app-stack-dev \
+  --query 'Stacks[0].Outputs[?OutputKey==`ApiEndpoint`].OutputValue' \
+  --output text
+
+# Cognito ドメイン
+aws cloudformation describe-stacks \
+  --stack-name family-diary-app-stack-dev \
+  --query 'Stacks[0].Outputs[?OutputKey==`CognitoDomainUrl`].OutputValue' \
+  --output text
+
+# Cognito クライアント ID
+aws cloudformation describe-stacks \
+  --stack-name family-diary-app-stack-dev \
+  --query 'Stacks[0].Outputs[?OutputKey==`CognitoClientId`].OutputValue' \
+  --output text
+```
+
+---
+
+## 🔄 ワークフロー実行タイミング
+
+| イベント | ワークフロー | 実行時間 |
+|----------|-------------|---------|
+| PR 作成・更新 | `PR Checks` + `Security & Quality` | ~5分 |
+| main へのマージ | `Deploy to AWS` | ~10分 |
+| デプロイ完了後 | `Pre-Deployment Verify` | ~3分 |
+| 毎日 10:00 UTC | `Integration Tests` | ~3分 |
+
+---
+
+## 📚 詳細ドキュメント
+
+- [🔐 詳細セットアップガイド](./GITHUB_ACTIONS_SETUP.md)
+- [📊 CI/CD 完全ガイド](./GITHUB_ACTIONS_CI_CD.md)
+- [📋 デプロイメント検証](./DEPLOYMENT_CHECKLIST.md)
+
+---
+
+## 🎓 Tips & Tricks
+
+### ローカルで GitHub Actions をテスト
+
+```bash
+# act を使ってローカル実行
+brew install act
+
+# PR Check をテスト
+act pull_request
+
+# Deploy をテスト（本番環境注意）
+act push
+```
+
+### ワークフロー実行ログ確認
+
+```bash
+# 最新の実行ログを取得
+gh run list --workflow deploy.yml
+
+# 詳細ログを表示
+gh run view <RUN_ID> --log
+```
+
+### Secrets の確認（チェック用）
+
+```bash
+# 設定済み Secrets を確認
+gh secret list
+```
+
+---
+
+**初回セットアップ時間**: 約30分  
+**継続的なメンテナンス**: なし（自動化対応）  
+**本番環境対応**: ✅ 可能
+
 
 # API Endpoint
 aws cloudformation describe-stacks \

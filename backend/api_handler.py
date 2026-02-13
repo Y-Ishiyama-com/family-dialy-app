@@ -48,10 +48,14 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             path = "/"
         
         print(f"Request: {method} {path}")
+        print(f"[DEBUG] Headers: {headers}")
+        print(f"[DEBUG] ALLOWED_ORIGINS_LIST: {ALLOWED_ORIGINS_LIST}")
         
         # 動的CORS処理: リクエストのOriginを検証
         request_origin = headers.get("origin") or headers.get("Origin", "")
+        print(f"[DEBUG] Request Origin: '{request_origin}'")
         allowed_origin = get_allowed_origin(request_origin)
+        print(f"[DEBUG] Allowed Origin: '{allowed_origin}'")
         
         # CORSヘッダー（許可されたOriginのみ）
         cors_headers = {
@@ -66,14 +70,28 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             print(f"CORS: Allowed origin = {allowed_origin}")
         else:
             print(f"CORS: Origin '{request_origin}' not in allowed list: {ALLOWED_ORIGINS_LIST}")
+            # プリフライト対応: 許可されたオリジンでなくても、OPTIONSレスポンスは返す
+            # ただしAccess-Control-Allow-Originは設定しない
         
         # OPTIONSリクエスト（プリフライト）
         if method == "OPTIONS":
-            return {
-                "statusCode": 200,
-                "headers": cors_headers,
-                "body": ""
-            }
+            # プリフライトレスポンス: 許可されたオリジンの場合のみCORSヘッダーを返す
+            if allowed_origin:
+                return {
+                    "statusCode": 200,
+                    "headers": cors_headers,
+                    "body": ""
+                }
+            else:
+                # 許可されていないオリジンの場合、Access-Control-Allow-Originなしでレスポンス
+                return {
+                    "statusCode": 200,
+                    "headers": {
+                        "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
+                        "Access-Control-Allow-Headers": "Content-Type,Authorization",
+                    },
+                    "body": ""
+                }
         
         # ヘルスチェック（認証不要）
         if path == "/health" and method == "GET":
@@ -130,6 +148,12 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             parts = path.split("/")
             year, month = int(parts[-2]), int(parts[-1])
             return handle_get_my_calendar(username, year, month, cors_headers)
+        
+        elif path == "/prompt" and method == "GET":
+            date_str = query_params.get("date") if query_params else None
+            if not date_str:
+                date_str = datetime.utcnow().strftime("%Y-%m-%d")
+            return handle_get_prompt(date_str, cors_headers)
         
         # 404
         return error_response(404, "エンドポイントが見つかりません", cors_headers)
@@ -308,6 +332,30 @@ def handle_get_my_calendar(username: str, year: int, month: int, headers: Dict) 
         transformed_entries.append(transformed_entry)
     
     return success_response({"entries": transformed_entries}, headers)
+
+
+def handle_get_prompt(date_str: str, headers: Dict) -> Dict:
+    """指定日のお題を取得"""
+    print(f"[DEBUG] Fetching prompt for date: {date_str}")
+    prompt_item = db.get_prompt(date_str)
+    print(f"[DEBUG] Prompt item retrieved: {prompt_item}")
+    
+    if not prompt_item:
+        # お題が存在しない場合、デフォルトメッセージを返す
+        print(f"[DEBUG] No prompt found for {date_str}")
+        return success_response({
+            "date": date_str,
+            "prompt": None,
+            "message": "お題はまだ生成されていません"
+        }, headers)
+    
+    print(f"[DEBUG] Returning prompt: {prompt_item.get('prompt')}")
+    return success_response({
+        "date": prompt_item.get("date"),
+        "prompt": prompt_item.get("prompt"),
+        "category": prompt_item.get("category", "daily"),
+        "created_at": prompt_item.get("created_at")
+    }, headers)
 
 
 def success_response(data: Any, headers: Dict) -> Dict:

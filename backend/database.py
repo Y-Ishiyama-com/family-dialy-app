@@ -451,3 +451,113 @@ class DiaryDatabase:
         家族カレンダーでは全ユーザーの公開日記を取得する
         """
         return self.query_public_entries_for_month(year, month)
+    
+    # ===== Prompts Table Methods =====
+    def __init_prompts_table(self):
+        """Prompts テーブルを初期化（遅延初期化）"""
+        if not hasattr(self, '_prompts_table'):
+            prompts_table_name = os.environ.get("DYNAMODB_PROMPTS_TABLE_NAME")
+            print(f"[DEBUG] DYNAMODB_PROMPTS_TABLE_NAME from env: {prompts_table_name}")
+            if not prompts_table_name:
+                raise ValueError("DYNAMODB_PROMPTS_TABLE_NAME environment variable not set")
+            
+            try:
+                dynamodb = boto3.resource("dynamodb")
+                self._prompts_table = dynamodb.Table(prompts_table_name)
+                # テーブル存在確認
+                self._prompts_table.table_status
+                print(f"[DEBUG] Successfully initialized prompts table: {prompts_table_name}")
+            except Exception as e:
+                print(f"Warning: Could not initialize prompts table: {e}")
+                self._prompts_table = None
+    
+    def save_prompt(self, date: str, prompt: str, category: Optional[str] = None) -> dict:
+        """
+        毎日のお題を保存
+        
+        Args:
+            date: 日付 (YYYY-MM-DD)
+            prompt: お題テキスト
+            category: カテゴリ（seasonal, event, reflection, fun など）
+        
+        Returns:
+            保存されたアイテム
+        """
+        self.__init_prompts_table()
+        if not self._prompts_table:
+            raise Exception("Prompts table not available")
+        
+        from datetime import timedelta
+        expire_date = datetime.now() + timedelta(days=30)
+        
+        item = {
+            "date": date,
+            "prompt": prompt,
+            "category": category or "general",
+            "created_at": datetime.utcnow().isoformat(),
+            "expireAt": int(expire_date.timestamp()),
+        }
+        
+        self._prompts_table.put_item(Item=item)
+        return item
+    
+    def get_prompt(self, date: str) -> Optional[dict]:
+        """
+        指定日のお題を取得
+        
+        Args:
+            date: 日付 (YYYY-MM-DD)
+        
+        Returns:
+            お題アイテム、見つからない場合は None
+        """
+        self.__init_prompts_table()
+        if not self._prompts_table:
+            print(f"[DEBUG] Prompts table not initialized")
+            return None
+        
+        try:
+            print(f"[DEBUG] Querying prompts table for date: {date}")
+            response = self._prompts_table.get_item(Key={"date": date})
+            item = response.get("Item")
+            print(f"[DEBUG] DynamoDB response: {response}")
+            print(f"[DEBUG] Item found: {item}")
+            return item
+        except Exception as e:
+            print(f"Error getting prompt for {date}: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+    
+    def get_recent_prompts(self, days: int = 14) -> List[dict]:
+        """
+        過去 N 日間のお題を取得（重複チェック用）
+        
+        Args:
+            days: 何日前までを取得するか
+        
+        Returns:
+            お題リスト
+        """
+        self.__init_prompts_table()
+        if not self._prompts_table:
+            return []
+        
+        try:
+            from datetime import timedelta, datetime
+            start_date = (datetime.utcnow() - timedelta(days=days)).strftime("%Y-%m-%d")
+            
+            # テーブルスキャン（開発環境用。本番ではGSIやQuery使用を推奨）
+            response = self._prompts_table.scan(
+                FilterExpression=f"#d >= :start_date",
+                ExpressionAttributeNames={"#d": "date"},
+                ExpressionAttributeValues={":start_date": start_date}
+            )
+            
+            # 日付でソート（新しい順）
+            items = response.get("Items", [])
+            items.sort(key=lambda x: x.get("date", ""), reverse=True)
+            return items
+        except Exception as e:
+            print(f"Error getting recent prompts: {e}")
+            return []

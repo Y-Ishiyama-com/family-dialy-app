@@ -15,20 +15,43 @@ function App() {
   const [loggedIn, setLoggedIn] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  // グローバルに認証ログを確認できる関数を追加
   useEffect(() => {
-    console.log('⚙️ useEffect running');
+    window.viewAuthLogs = () => {
+      const logs = localStorage.getItem('auth_debug_logs')
+      if (!logs) {
+        console.log('❌ No debug logs found')
+        return
+      }
+      const parsedLogs = JSON.parse(logs)
+      console.clear()
+      console.log('=== AUTHENTICATION DEBUG LOGS ===')
+      parsedLogs.forEach((log, index) => {
+        console.log(`${index + 1}. ${log}`)
+      })
+      console.log('=== END OF LOGS ===')
+      return parsedLogs
+    }
+    
+    window.clearAuthLogs = () => {
+      localStorage.removeItem('auth_debug_logs')
+      console.log('✅ Debug logs cleared')
+    }
+    
+    console.log('💡 TIP: Use window.viewAuthLogs() to see authentication debug logs')
+  }, [])
+
+  useEffect(() => {
     try {
       // 環境変数の検証
       validateConfig()
-      console.log('✅ Config validated');
       
       // ログイン状態を確認
       const loginStatus = isLoggedIn()
-      console.log('🔐 Login status:', loginStatus);
       setLoggedIn(loginStatus)
       setLoading(false)
     } catch (error) {
-      console.error('❌ App initialization error:', error);
+      console.error('App initialization error:', error)
       setLoading(false)
     }
   }, [])
@@ -39,6 +62,15 @@ function App() {
   }
 
   const handleLoginSuccess = () => {
+    // localStorageの直後の内容を確認
+    const token = localStorage.getItem('auth_token')
+    const expiresAt = localStorage.getItem('expires_at')
+    console.log('🔍 [handleLoginSuccess] Immediate check:')
+    console.log('   auth_token present:', !!token)
+    console.log('   expires_at present:', !!expiresAt)
+    if (token) console.log('   token value:', token.substring(0, 50) + '...')
+    if (expiresAt) console.log('   expiresAt value:', expiresAt)
+    
     setLoggedIn(true)
   }
 
