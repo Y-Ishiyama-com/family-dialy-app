@@ -137,6 +137,37 @@ jobs:
           npx cdk deploy --require-approval never --outputs-file cdk-outputs.json
           echo "api_endpoint=$(cat cdk-outputs.json | jq -r '.["family-diary-app-stack-dev"].ApiEndpoint')" >> $GITHUB_OUTPUT
 
+      - name: Clean up old EventBridge rules
+        run: |
+          echo "Cleaning up old EventBridge rules..."
+          
+          RULE_NAME="DailyPromptGenerationRule"
+          REGION="${{ env.AWS_REGION }}"
+          
+          # Check if old rule exists
+          if aws events describe-rule --name $RULE_NAME --region $REGION 2>/dev/null; then
+            echo "Found old EventBridge rule: $RULE_NAME"
+            
+            # Remove all targets from the rule first
+            TARGETS=$(aws events list-targets-by-rule --rule $RULE_NAME --region $REGION --query 'Targets[].Id' --output text)
+            if [ -n "$TARGETS" ]; then
+              echo "Removing targets: $TARGETS"
+              aws events remove-targets --rule $RULE_NAME --ids $TARGETS --region $REGION || echo "⚠ Could not remove all targets"
+            fi
+            
+            # Now delete the rule
+            aws events delete-rule --name $RULE_NAME --region $REGION --force && echo "✓ Deleted old rule" || echo "⚠ Could not delete rule"
+          else
+            echo "ℹ Old rule not found (expected on first run)"
+          fi
+          
+          # Verify new rule exists
+          if aws events describe-rule --name DailyPromptGenerationRule-Updated --region $REGION; then
+            echo "✓ New EventBridge rule verified"
+          else
+            echo "⚠ New rule not found"
+          fi
+
       - name: Force Update Lambda Function Code
         run: |
           echo "📝 Forcing Lambda function code update..."

@@ -234,23 +234,27 @@ export class FamilyDiaryMainStack extends cdk.Stack {
     );
 
     // === EventBridge Rule for Daily Prompt Generation ===
+    // Lambda permission for EventBridge (explicit permission ensures detection)
+    promptGeneratorFunction.addPermission('AllowEventBridgeInvoke', {
+      principal: new iam.ServicePrincipal('events.amazonaws.com'),
+      action: 'lambda:InvokeFunction',
+      sourceArn: `arn:aws:events:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:rule/DailyPromptGenerationRule-Updated`,
+    });
+
     // Schedule: Daily at 9:00 AM JST (00:00 UTC)
     const promptGenerationRule = new events.Rule(this, 'DailyPromptGenerationRule', {
+      ruleName: 'DailyPromptGenerationRule-Updated',  // Changed name - forces replacement
       schedule: events.Schedule.cron({
         hour: '0',      // 00:00 UTC = 09:00 JST (+9)
         minute: '0',
-        day: '*',
-        month: '*',
-        year: '*',
       }),
-      description: 'Trigger daily prompt generation (9:00 AM JST)',
+      description: 'Daily prompt generation - Updated February 14, 2026',
+      enabled: true,
     });
 
     // Add Lambda as target
     promptGenerationRule.addTarget(
-      new targets.LambdaFunction(promptGeneratorFunction, {
-        deadLetterQueue: undefined,  // Optional: add DLQ for failed invocations
-      })
+      new targets.LambdaFunction(promptGeneratorFunction)
     );
 
     // === Cognito Authorizer for API Gateway ===
