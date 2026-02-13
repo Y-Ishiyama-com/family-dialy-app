@@ -40,7 +40,7 @@ class DailyPrompt:
 - **機能**: 指定日のお題を返す
 
 #### Lambda関数 (`prompt_generator_lambda.py`)
-- **トリガー**: EventBridge（毎日UTC 00:00 = JST 09:00）
+- **トリガー**: EventBridge（毎日JST 00:00 = UTC 15:00）
 - **処理**:
   1. 本日のお題が既に存在するか確認
   2. 過去14日のお題をDynamoDBから取得
@@ -78,7 +78,7 @@ class DailyPrompt:
    - Bedrock `InvokeModel` 権限
 
 4. **EventBridgeルール** (`DailyPromptGenerationRule`)
-   - スケジュール: `cron(0 0 * * ? *)`  (UTC 00:00 = JST 09:00)
+   - スケジュール: `cron(0 15 * * ? *)`  (UTC 15:00 = JST 00:00)
    - ターゲット: Lambda関数
 
 ### ✅ フェーズ4: Frontend実装
@@ -165,7 +165,7 @@ frontend/src/
 
 ###「お題」の生成フロー
 ```
-毎日 09:00 JST
+毎日 00:00 JST
     ↓
 EventBridge トリガー
     ↓
@@ -195,13 +195,13 @@ DailyPrompt コンポーネント
 ### 時系列の動き
 
 #### 初回実行（デプロイ直後）
-- EventBridge ルール有効化 → 翌日 09:00 JST に実行開始
+- EventBridge ルール有効化 → 翼日 00:00 JST に実行開始
 - ユーザーが日記編集画面を開く
   - `/prompt` API を呼び出し
   - お題なし → "お題はまだ生成されていません" メッセージ
 
 #### 毎日の実行
-- 09:00 JST: EventBridge → Lambda 実行
+- 00:00 JST: EventBridge → Lambda 実行
 - Lambda: 新しいお題を生成・保存
 - ユーザーが日記編集画面を開く
   - `/prompt` API を呼び出し

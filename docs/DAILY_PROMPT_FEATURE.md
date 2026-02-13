@@ -32,7 +32,7 @@
 ```
 
 #### Lambda関数：`prompt_generator_lambda.py`
-- **トリガー**: EventBridge（毎日UTC 00:00 = JST 09:00）
+- **トリガー**: EventBridge（毎日JST 00:00 = UTC 15:00）
 - **処理内容**:
   1. 過去14日間のお題をDynamoDBから取得
   2. Bedrockを呼び出してお題を生成
@@ -68,7 +68,7 @@ const promptGeneratorFunction = new lambda.Function(...)
 
 **EventBridgeルール** (`main-stack.ts`)
 ```typescript
-// 毎日UTC 00:00 (JST 09:00)に実行
+// 毎日JST 00:00 (UTC 15:00)に実行
 schedule: Schedule.cron({ hour: '0', minute: '0' })
 ```
 
@@ -179,7 +179,7 @@ cat response.json
 
 ### EventBridgeが実行されない
 - [ ] EventBridgeルール `DailyPromptGenerationRule-Updated` が有効になっているか
-- [ ] タイムゾーン設定が正確か（UTC 00:00 = JST 09:00）
+- [ ] タイムゾーン設定が正確か（JST 00:00 = UTC 15:00）
 - [ ] CloudWatch Logs でルールの実行履歴を確認
 
 ### フロントエンドに表示されない

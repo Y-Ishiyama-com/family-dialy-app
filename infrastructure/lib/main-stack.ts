@@ -241,14 +241,14 @@ export class FamilyDiaryMainStack extends cdk.Stack {
       sourceArn: `arn:aws:events:${cdk.Stack.of(this).region}:${cdk.Stack.of(this).account}:rule/DailyPromptGenerationRule-Updated`,
     });
 
-    // Schedule: Daily at 9:00 AM JST (00:00 UTC)
+    // Schedule: Daily at 00:00 JST (15:00 UTC, previous day)
     const promptGenerationRule = new events.Rule(this, 'DailyPromptGenerationRule', {
       ruleName: 'DailyPromptGenerationRule-Updated',  // Changed name - forces replacement
       schedule: events.Schedule.cron({
-        hour: '0',      // 00:00 UTC = 09:00 JST (+9)
+        hour: '15',      // 15:00 UTC = 00:00 JST (next day, +9)
         minute: '0',
       }),
-      description: 'Daily prompt generation - Updated February 14, 2026',
+      description: 'Daily prompt generation - Scheduled for 00:00 JST (15:00 UTC)',
       enabled: true,
     });
 
