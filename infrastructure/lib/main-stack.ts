@@ -336,6 +336,10 @@ export class FamilyDiaryMainStack extends cdk.Stack {
       authorizationType: apigateway.AuthorizationType.COGNITO,
     });
 
+    // Daily Prompt endpoint (認証不要 - OPTIONS と GET)
+    const promptResource = api.root.addResource('prompt');
+    promptResource.addMethod('GET', lambdaIntegration);
+
     // === Gateway Responses for CORS on Auth Errors ===
     // 401 Unauthorizedレスポンスに明示的にCORSヘッダーを追加
     api.addGatewayResponse('Unauthorized', {
