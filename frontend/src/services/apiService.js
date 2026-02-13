@@ -26,47 +26,43 @@ const apiCall = async (path, options = {}) => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
   const fullUrl = `${baseUrl}${normalizedPath}`
 
-  try {
-    const response = await fetch(fullUrl, {
-      ...options,
-      headers,
-    })
+  const response = await fetch(fullUrl, {
+    ...options,
+    headers,
+  })
 
-    if (response.status === 401) {
-      // トークンが無効・期限切れ
-      signOut()
-      
-      // ログイン画面へリダイレクト
-      window.location.href = '/'
-      
-      // リダイレクト待機
-      return new Promise(() => {})
-    }
-
-    if (!response.ok) {
-      // レスポンスボディを一度だけ読み取る
-      const contentType = response.headers.get('content-type')
-      let errorMessage = `API error: ${response.status}`
-      
-      try {
-        if (contentType && contentType.includes('application/json')) {
-          const errorData = await response.json()
-          errorMessage = errorData.error || errorData.detail || errorMessage
-        } else {
-          const errorText = await response.text()
-          errorMessage = errorText || errorMessage
-        }
-      } catch (parseError) {
-        // Parse error occurred, use status code message
-      }
-      
-      throw new Error(errorMessage)
-    }
-
-    return await response.json()
-  } catch (error) {
-    throw error
+  if (response.status === 401) {
+    // トークンが無効・期限切れ
+    signOut()
+    
+    // ログイン画面へリダイレクト
+    window.location.href = '/'
+    
+    // リダイレクト待機
+    return new Promise(() => {})
   }
+
+  if (!response.ok) {
+    // レスポンスボディを一度だけ読み取る
+    const contentType = response.headers.get('content-type')
+    let errorMessage = `API error: ${response.status}`
+    
+    try {
+      if (contentType && contentType.includes('application/json')) {
+        const errorData = await response.json()
+        errorMessage = errorData.error || errorData.detail || errorMessage
+      } else {
+        const errorText = await response.text()
+        errorMessage = errorText || errorMessage
+      }
+    } catch (parseError) {
+      // Parse error occurred, use status code message
+    }
+    
+    throw new Error(errorMessage)
+  }
+
+  return await response.json()
 }
 
 /**

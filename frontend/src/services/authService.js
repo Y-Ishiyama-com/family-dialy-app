@@ -52,57 +52,51 @@ export const signUp = async (email, password, username = null) => {
  * ユーザーをサインイン
  */
 export const signIn = async (username, password) => {
-  try {
-    appendLog(`📝 [signIn] Attempting sign in for username: ${username}`)
-    
-    const response = await fetch(
-      `https://cognito-idp.${config.awsRegion}.amazonaws.com/`,
-      {
-        method: 'POST',
-        headers: {
-          'X-Amz-Target':
-            'AWSCognitoIdentityProviderService.InitiateAuth',
-          'Content-Type': 'application/x-amz-json-1.1',
+  const response = await fetch(
+    `https://cognito-idp.${config.awsRegion}.amazonaws.com/`,
+    {
+      method: 'POST',
+      headers: {
+        'X-Amz-Target':
+          'AWSCognitoIdentityProviderService.InitiateAuth',
+        'Content-Type': 'application/x-amz-json-1.1',
+      },
+      body: JSON.stringify({
+        ClientId: config.cognitoClientId,
+        AuthFlow: 'USER_PASSWORD_AUTH',
+        AuthParameters: {
+          USERNAME: username,
+          PASSWORD: password,
         },
-        body: JSON.stringify({
-          ClientId: config.cognitoClientId,
-          AuthFlow: 'USER_PASSWORD_AUTH',
-          AuthParameters: {
-            USERNAME: username,
-            PASSWORD: password,
-          },
-        }),
-      }
+      }),
+    }
+  )
+
+  if (!response.ok) {
+    const errorData = await response.json()
+    throw new Error(errorData.message || 'Sign in failed')
+  }
+
+  const data = await response.json()
+  
+  // NEW_PASSWORD_REQUIRED チャレンジの場合
+  if (data.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
+    throw new Error('NEW_PASSWORD_REQUIRED:' + data.Session)
+  }
+  
+  const { AuthenticationResult } = data
+
+  // トークンを保存
+  if (AuthenticationResult) {
+    saveToken(
+      AuthenticationResult.AccessToken,
+      AuthenticationResult.IdToken,
+      AuthenticationResult.RefreshToken
     )
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.message || 'Sign in failed')
-    }
-
-    const data = await response.json()
-    
-    // NEW_PASSWORD_REQUIRED チャレンジの場合
-    if (data.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
-      throw new Error('NEW_PASSWORD_REQUIRED:' + data.Session)
-    }
-    
-    const { AuthenticationResult } = data
-
-    // トークンを保存
-    if (AuthenticationResult) {
-      saveToken(
-        AuthenticationResult.AccessToken,
-        AuthenticationResult.IdToken,
-        AuthenticationResult.RefreshToken
-      )
-      // ユーザーID はトークンから抽出
-      const decoded = decodeToken(AuthenticationResult.IdToken)
-      const username = decoded['cognito:username'] || decoded.sub
-      saveUserId(username)
-    }
-  } catch (error) {
-    throw error
+    // ユーザーID はトークンから抽出
+    const decoded = decodeToken(AuthenticationResult.IdToken)
+    const username = decoded['cognito:username'] || decoded.sub
+    saveUserId(username)
   }
 }
 
