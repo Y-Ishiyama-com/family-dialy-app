@@ -317,18 +317,22 @@ export const getUserId = () => {
 }
 
 /**
- * ユーザーがログイン済みか確認
+ * ユーザーがログイン済みか確認（同期的）
+ * トークンの有効期限を簡易的に確認
  */
 export const isLoggedIn = () => {
-  const token = getToken()
+  const token = localStorage.getItem(TOKEN_KEY)
   const expiresAt = localStorage.getItem(EXPIRES_AT_KEY)
 
   if (!token || !expiresAt) {
+    console.log('❌ No token or expiresAt found')
     return false
   }
 
   // トークンが有効期限切れか確認
-  return Date.now() < parseInt(expiresAt, 10)
+  const isValid = Date.now() < parseInt(expiresAt, 10)
+  console.log(`✅ Token valid: ${isValid} (expires at: ${new Date(parseInt(expiresAt, 10)).toLocaleString()})`)
+  return isValid
 }
 
 /**
