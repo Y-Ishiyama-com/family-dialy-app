@@ -7,6 +7,7 @@ import { Construct } from 'constructs';
  */
 export class DatabaseStack extends cdk.Stack {
   public readonly diaryTable: dynamodb.Table;
+  public readonly diaryPromptsTable: dynamodb.Table;
 
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
@@ -53,15 +54,56 @@ export class DatabaseStack extends cdk.Stack {
       projectionType: dynamodb.ProjectionType.ALL,
     });
 
+    // Create DynamoDB Table for Daily Prompts
+    this.diaryPromptsTable = new dynamodb.Table(this, 'DiaryPromptsTable', {
+      tableName: 'diary_prompts',
+      partitionKey: {
+        name: 'date',
+        type: dynamodb.AttributeType.STRING,  // YYYY-MM-DD format
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // For dev environment only
+      encryption: dynamodb.TableEncryption.AWS_MANAGED,
+      pointInTimeRecovery: false, // Enable for production
+      ttl: {
+        attribute: 'expireAt',
+        enabled: true,  // Auto-delete old prompts after 30 days
+      },
+    });
+
+    // Add GSI to query prompts by date range (for fetching recent prompts)
+    this.diaryPromptsTable.addGlobalSecondaryIndex({
+      indexName: 'createdAt-index',
+      partitionKey: {
+        name: 'createdAt',
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'date',
+        type: dynamodb.AttributeType.STRING,
+      },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
     // Outputs
     new cdk.CfnOutput(this, 'TableName', {
       value: this.diaryTable.tableName,
       description: 'DynamoDB Table Name',
     });
 
+    new cdk.CfnOutput(this, 'PromptTableName', {
+      value: this.diaryPromptsTable.tableName,
+      description: 'DynamoDB Prompts Table Name',
+    });
+
     new cdk.CfnOutput(this, 'TableArn', {
       value: this.diaryTable.tableArn,
       description: 'DynamoDB Table ARN',
+    });
+
+    new cdk.CfnOutput(this, 'PromptTableArn', {
+      value: this.diaryPromptsTable.tableArn,
+      description: 'DynamoDB Prompts Table ARN',
     });
   }
 }

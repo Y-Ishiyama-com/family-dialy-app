@@ -1,0 +1,129 @@
+/**
+ * DailyPrompt コンポーネントのスタイル
+ */
+
+.daily-prompt {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, #fff5e1 0%, #ffe8cc 100%);
+  border: 2px solid #ffd699;
+  box-shadow: 0 2px 8px rgba(255, 169, 0, 0.15);
+}
+
+.daily-prompt.empty {
+  background: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 100%);
+  border-color: #cbd5e1;
+  text-align: center;
+}
+
+.daily-prompt.error {
+  background: linear-gradient(135deg, #fee 0%, #fdd 100%);
+  border-color: #fcc;
+  text-align: center;
+}
+
+.daily-prompt.loading {
+  background: linear-gradient(135deg, #f5f7fa 0%, #eef2f7 100%);
+  border-color: #cbd5e1;
+  text-align: center;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.prompt-container {
+  max-width: 100%;
+}
+
+.prompt-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.prompt-icon {
+  font-size: 1.5rem;
+  display: inline-block;
+}
+
+.prompt-label {
+  font-weight: 600;
+  color: #d97706;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.prompt-text {
+  margin: 0.75rem 0;
+  font-size: 1.1rem;
+  color: #333;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.daily-prompt.empty .prompt-text,
+.daily-prompt.error .prompt-text,
+.daily-prompt.loading .prompt-text {
+  color: #666;
+  font-size: 1rem;
+  font-weight: normal;
+}
+
+.prompt-hint {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 169, 0, 0.2);
+  font-size: 0.85rem;
+  color: #b45309;
+  font-style: italic;
+}
+
+.daily-prompt.empty .prompt-hint {
+  border-color: rgba(203, 213, 225, 0.3);
+  border-top: none;
+  display: none;
+}
+
+.prompt-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(209, 113, 19, 0.2);
+  border-radius: 50%;
+  border-top-color: #d97106;
+  animation: spin 1s linear infinite;
+  margin-bottom: 0.5rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* レスポンシブ */
+@media (max-width: 640px) {
+  .daily-prompt {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+  }
+
+  .prompt-text {
+    font-size: 1rem;
+  }
+
+  .prompt-icon {
+    font-size: 1.25rem;
+  }
+}

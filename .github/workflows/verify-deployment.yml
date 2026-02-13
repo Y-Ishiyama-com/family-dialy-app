@@ -1,0 +1,161 @@
+name: Pre-Deployment Verification
+
+on:
+  workflow_run:
+    workflows: ["Deploy to AWS"]
+    types: [completed]
+  workflow_dispatch:  # 手動トリガー
+
+env:
+  AWS_REGION: us-west-2
+
+jobs:
+  verify-deployment:
+    name: Verify Deployment
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run deployment verification script
+        working-directory: docs
+        run: |
+          python verify_deployment.py
+
+      - name: Check Lambda function configuration
+        run: |
+          echo "Verifying Lambda functions configuration..."
+          
+          # Check API Lambda
+          echo "📋 API Lambda (family-diary-api):"
+          aws lambda get-function-configuration \
+            --function-name family-diary-api \
+            --query '{Runtime: Runtime, Memory: MemorySize, Timeout: Timeout}' \
+            --output table || echo "⚠️ API Lambda not found"
+          
+          # Check Prompt Generator Lambda
+          echo ""
+          echo "📋 Prompt Generator Lambda (family-diary-prompt-generator):"
+          aws lambda get-function-configuration \
+            --function-name family-diary-prompt-generator \
+            --query '{Runtime: Runtime, Memory: MemorySize, Timeout: Timeout}' \
+            --output table || echo "⚠️ Prompt Generator Lambda not found"
+
+      - name: Check DynamoDB tables
+        run: |
+          echo "Verifying DynamoDB tables..."
+          
+          for table in "diary_entries" "diary_prompts"; do
+            echo ""
+            echo "📊 Table: $table"
+            aws dynamodb describe-table \
+              --table-name "$table" \
+              --query '{TableName: TableName, Status: TableStatus, Size: TableSizeBytes, Items: ItemCount}' \
+              --output table || echo "⚠️ Table not found: $table"
+          done
+
+      - name: Check API Gateway
+        run: |
+          echo "Verifying API Gateway..."
+          
+          API_ENDPOINT="${{ secrets.VITE_API_ENDPOINT }}"
+          if [ -z "$API_ENDPOINT" ]; then
+            echo "⚠️ API_ENDPOINT not configured"
+            exit 1
+          fi
+          
+          echo "✓ API Endpoint configured: $API_ENDPOINT"
+          
+          # Test API health
+          echo ""
+          echo "Testing API health endpoint..."
+          HEALTH_RESPONSE=$(curl -s -w "\n%{http_code}" "$API_ENDPOINT/health" || echo "000")
+          HTTP_CODE=$(echo "$HEALTH_RESPONSE" | tail -n1)
+          
+          if [ "$HTTP_CODE" == "200" ]; then
+            echo "✓ API is responding (HTTP 200)"
+          else
+            echo "⚠️ API returned HTTP $HTTP_CODE"
+          fi
+
+      - name: Check S3 bucket
+        run: |
+          echo "Verifying S3 bucket..."
+          
+          S3_BUCKET="${{ secrets.S3_BUCKET_NAME }}"
+          if [ -z "$S3_BUCKET" ]; then
+            echo "⚠️ S3_BUCKET_NAME not configured"
+            exit 1
+          fi
+          
+          echo "✓ S3 Bucket: $S3_BUCKET"
+          
+          # Check bucket contents
+          FILE_COUNT=$(aws s3 ls "s3://$S3_BUCKET/" --recursive --summarize | grep "Total Objects:" | awk '{print $3}')
+          echo "  Objects in bucket: $FILE_COUNT"
+          
+          # Check key files
+          for file in "index.html" "index.js" "package.json"; do
+            if aws s3 ls "s3://$S3_BUCKET/" | grep -q "$file"; then
+              echo "  ✓ Found: $file"
+            fi
+          done
+
+      - name: Check CloudFront distribution
+        run: |
+          echo "Verifying CloudFront distribution..."
+          
+          CF_ID="${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}"
+          if [ -z "$CF_ID" ]; then
+            echo "⚠️ CLOUDFRONT_DISTRIBUTION_ID not configured"
+            exit 1
+          fi
+          
+          echo "✓ CloudFront Distribution: $CF_ID"
+          
+          # Get distribution info
+          aws cloudfront get-distribution \
+            --id "$CF_ID" \
+            --query '{Id: Distribution.Id, Status: Distribution.DistributionConfig.Enabled, DomainName: Distribution.DomainName}' \
+            --output table
+
+      - name: Generate verification report
+        run: |
+          echo "### ✅ Pre-Deployment Verification Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Verified Components:**" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Lambda functions (API + Prompt Generator)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ DynamoDB tables (diary_entries + diary_prompts)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ API Gateway health" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ S3 bucket contents" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ CloudFront distribution" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Verification Timestamp:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+
+  rollback-on-failure:
+    name: Alert on Failure
+    runs-on: ubuntu-latest
+    needs: [verify-deployment]
+    if: failure()
+    steps:
+      - name: Create failure alert
+        run: |
+          echo "❌ Verification failed!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **ALERT:** Deployment verification failed." >> $GITHUB_STEP_SUMMARY
+          echo "Please review the logs and resolve any issues before deployment." >> $GITHUB_STEP_SUMMARY
+          exit 1

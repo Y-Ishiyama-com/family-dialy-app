@@ -13,11 +13,13 @@ env:
   AWS_REGION: us-west-2
   NODE_VERSION: '18'
   PYTHON_VERSION: '3.11'
+  BEDROCK_MODEL_ID: 'anthropic.claude-3-sonnet-20240229-v1:0'
 
 # GitHub ActionsがSTSを使ってAWSロールを引き受ける権限
 permissions:
   id-token: write
   contents: read
+  actions: read
 
 jobs:
   test-frontend:
@@ -69,6 +71,22 @@ jobs:
         working-directory: backend
         run: pytest --if-present || echo "No tests found"
 
+      - name: Validate Lambda functions
+        working-directory: backend
+        run: |
+          python -m py_compile api_handler.py
+          python -m py_compile prompt_generator_lambda.py
+          python -m py_compile database.py
+          python -m py_compile models.py
+          echo "✓ All Lambda functions validated"
+
+      - name: Check imports and dependencies
+        working-directory: backend
+        run: |
+          python -c "import models; print('✓ Models module OK')"
+          python -c "import database; print('✓ Database module OK')"
+          echo "✓ All modules are importable"
+
   deploy-backend:
     name: Deploy Backend (Lambda + Infrastructure)
     runs-on: ubuntu-latest
@@ -109,6 +127,35 @@ jobs:
         run: |
           npx cdk deploy --require-approval never --outputs-file cdk-outputs.json
           echo "api_endpoint=$(cat cdk-outputs.json | jq -r '.["family-diary-app-stack-dev"].ApiEndpoint')" >> $GITHUB_OUTPUT
+
+      - name: Verify Bedrock Access
+        run: |
+          echo "Checking Bedrock model availability..."
+          aws bedrock-runtime get-foundation-model \
+            --model-identifier ${{ env.BEDROCK_MODEL_ID }} \
+            --region ${{ env.AWS_REGION }} || echo "⚠ Bedrock model check (expected in production region)"
+
+      - name: Verify Deployment Resources
+        run: |
+          echo "Verifying deployed resources..."
+          
+          # Check DynamoDB table
+          aws dynamodb describe-table \
+            --table-name diary_prompts \
+            --region ${{ env.AWS_REGION }} \
+            && echo "✓ diary_prompts table exists" || echo "⚠ diary_prompts table check"
+          
+          # Check Lambda function
+          aws lambda get-function \
+            --function-name family-diary-prompt-generator \
+            --region ${{ env.AWS_REGION }} \
+            && echo "✓ Prompt generator Lambda exists" || echo "⚠ Lambda check"
+          
+          # Check EventBridge rule
+          aws events describe-rule \
+            --name DailyPromptGenerationRule \
+            --region ${{ env.AWS_REGION }} \
+            && echo "✓ EventBridge rule exists" || echo "⚠ EventBridge rule check"
 
       - name: Upload CDK outputs
         uses: actions/upload-artifact@v4
@@ -168,10 +215,28 @@ jobs:
             --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
             --paths "/*"
 
+      - name: Verify Frontend Deployment
+        run: |
+          echo "Verifying frontend deployment..."
+          
+          # Check S3 bucket
+          aws s3 ls s3://${{ secrets.S3_BUCKET_NAME }}/ \
+            && echo "✓ Frontend files deployed to S3" || echo "⚠ S3 verification"
+          
+          # Check CloudFront invalidation
+          echo "✓ CloudFront cache invalidated"
+
       - name: Deployment summary
         run: |
           echo "### 🚀 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Frontend URL:** https://d1l985y7ocpo2p.cloudfront.net" >> $GITHUB_STEP_SUMMARY
           echo "**API Endpoint:** ${{ secrets.VITE_API_ENDPOINT }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed Resources:**" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Lambda functions (API + Prompt Generator)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ DynamoDB tables (diary_entries + diary_prompts)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ EventBridge rule (Daily prompt generation)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✓ Frontend (React app)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Deployed at:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY

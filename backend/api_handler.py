@@ -131,6 +131,12 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             year, month = int(parts[-2]), int(parts[-1])
             return handle_get_my_calendar(username, year, month, cors_headers)
         
+        elif path == "/prompt" and method == "GET":
+            date_str = query_params.get("date") if query_params else None
+            if not date_str:
+                date_str = datetime.utcnow().strftime("%Y-%m-%d")
+            return handle_get_prompt(date_str, cors_headers)
+        
         # 404
         return error_response(404, "エンドポイントが見つかりません", cors_headers)
         
@@ -308,6 +314,26 @@ def handle_get_my_calendar(username: str, year: int, month: int, headers: Dict) 
         transformed_entries.append(transformed_entry)
     
     return success_response({"entries": transformed_entries}, headers)
+
+
+def handle_get_prompt(date_str: str, headers: Dict) -> Dict:
+    """指定日のお題を取得"""
+    prompt_item = db.get_prompt(date_str)
+    
+    if not prompt_item:
+        # お題が存在しない場合、デフォルトメッセージを返す
+        return success_response({
+            "date": date_str,
+            "prompt": None,
+            "message": "お題はまだ生成されていません"
+        }, headers)
+    
+    return success_response({
+        "date": prompt_item.get("date"),
+        "prompt": prompt_item.get("prompt"),
+        "category": prompt_item.get("category", "daily"),
+        "created_at": prompt_item.get("created_at")
+    }, headers)
 
 
 def success_response(data: Any, headers: Dict) -> Dict:

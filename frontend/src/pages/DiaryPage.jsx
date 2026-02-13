@@ -5,8 +5,9 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import DiaryEntry from '../components/DiaryEntry'
+import DailyPrompt from '../components/DailyPrompt'
 import PhotoUpload from '../components/PhotoUpload'
-import { getDiaryEntry, saveDiaryEntry, uploadPhoto, deleteDiaryEntry } from '../services/apiService'
+import { getDiaryEntry, saveDiaryEntry, uploadPhoto, deleteDiaryEntry, getPrompt } from '../services/apiService'
 import './DiaryPage.css'
 
 export default function DiaryPage() {
@@ -22,9 +23,42 @@ export default function DiaryPage() {
   const [privateText, setPrivateText] = useState('')
   const [privatePhotoUrl, setPrivatePhotoUrl] = useState('')
   
+  // お題
+  const [prompt, setPrompt] = useState(null)
+  const [promptCategory, setPromptCategory] = useState('daily')
+  const [promptLoading, setPromptLoading] = useState(false)
+  const [promptError, setPromptError] = useState(null)
+  
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  // お題を読み込み
+  useEffect(() => {
+    const loadPrompt = async () => {
+      setPromptLoading(true)
+      setPromptError(null)
+      
+      try {
+        const response = await getPrompt(currentDate)
+        if (response.prompt) {
+          setPrompt(response.prompt)
+          setPromptCategory(response.category || 'daily')
+        } else {
+          setPrompt(null)
+          setPromptError(response.message)
+        }
+      } catch (err) {
+        console.error('Failed to load prompt:', err)
+        setPrompt(null)
+        setPromptError(null) // エラーメッセージは表示しない（optional）
+      } finally {
+        setPromptLoading(false)
+      }
+    }
+    
+    loadPrompt()
+  }, [currentDate])
 
   // エントリを読み込み（公開と非公開の両方）
   useEffect(() => {
@@ -161,6 +195,14 @@ export default function DiaryPage() {
 
         {error && <div className="error-message">{error}</div>}
         {success && <div className="success-message">{success}</div>}
+
+        {/* 毎日のお題を表示 */}
+        <DailyPrompt
+          prompt={prompt}
+          category={promptCategory}
+          loading={promptLoading}
+          error={promptError}
+        />
 
         {/* タブ切り替え */}
         <div className="diary-tabs">
