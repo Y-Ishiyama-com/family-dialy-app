@@ -41,14 +41,30 @@ const apiCall = async (path, options = {}) => {
       // トークンが無効・期限切れ
       console.error('❌ 401 Unauthorized - Token expired or invalid')
       
-      // ローカルストレージをクリア
-      signOut()
+      // localStorage に有効なトークンが存在するか確認
+      const storedToken = localStorage.getItem('auth_token')
+      const expiresAt = localStorage.getItem('expires_at')
+      const now = Date.now()
       
-      // ログイン画面へリダイレクト
-      window.location.href = '/'
-      
-      // リダイレクト待機
-      return new Promise(() => {})
+      if (storedToken && expiresAt && parseInt(expiresAt) > now) {
+        // トークンはまだ有効 - API側の一時的なエラーかもしれない
+        console.warn('⚠️  Token exists and is valid in localStorage, but received 401 from API')
+        console.warn('    This may be a temporary API issue. Storing token validity info.')
+        localStorage.setItem('last_401_time', Date.now().toString())
+        
+        // API エラーを スロー（自動ログアウトしない）
+        throw new Error('API returned 401 but token is still valid. Please refresh the page.')
+      } else {
+        // トークンが本当に期限切れ - ログアウト
+        console.log('✓ Token has expired or not found, performing logout')
+        signOut()
+        
+        // ログイン画面へリダイレクト
+        window.location.href = '/'
+        
+        // リダイレクト待機
+        return new Promise(() => {})
+      }
     }
 
     if (!response.ok) {
