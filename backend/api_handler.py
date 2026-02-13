@@ -48,10 +48,14 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             path = "/"
         
         print(f"Request: {method} {path}")
+        print(f"[DEBUG] Headers: {headers}")
+        print(f"[DEBUG] ALLOWED_ORIGINS_LIST: {ALLOWED_ORIGINS_LIST}")
         
         # 動的CORS処理: リクエストのOriginを検証
         request_origin = headers.get("origin") or headers.get("Origin", "")
+        print(f"[DEBUG] Request Origin: '{request_origin}'")
         allowed_origin = get_allowed_origin(request_origin)
+        print(f"[DEBUG] Allowed Origin: '{allowed_origin}'")
         
         # CORSヘッダー（許可されたOriginのみ）
         cors_headers = {
@@ -66,14 +70,28 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             print(f"CORS: Allowed origin = {allowed_origin}")
         else:
             print(f"CORS: Origin '{request_origin}' not in allowed list: {ALLOWED_ORIGINS_LIST}")
+            # プリフライト対応: 許可されたオリジンでなくても、OPTIONSレスポンスは返す
+            # ただしAccess-Control-Allow-Originは設定しない
         
         # OPTIONSリクエスト（プリフライト）
         if method == "OPTIONS":
-            return {
-                "statusCode": 200,
-                "headers": cors_headers,
-                "body": ""
-            }
+            # プリフライトレスポンス: 許可されたオリジンの場合のみCORSヘッダーを返す
+            if allowed_origin:
+                return {
+                    "statusCode": 200,
+                    "headers": cors_headers,
+                    "body": ""
+                }
+            else:
+                # 許可されていないオリジンの場合、Access-Control-Allow-Originなしでレスポンス
+                return {
+                    "statusCode": 200,
+                    "headers": {
+                        "Access-Control-Allow-Methods": "GET,POST,DELETE,OPTIONS",
+                        "Access-Control-Allow-Headers": "Content-Type,Authorization",
+                    },
+                    "body": ""
+                }
         
         # ヘルスチェック（認証不要）
         if path == "/health" and method == "GET":
