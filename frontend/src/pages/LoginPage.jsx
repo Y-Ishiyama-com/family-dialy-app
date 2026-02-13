@@ -39,17 +39,7 @@ export default function LoginPage({ onLoginSuccess }) {
 
     try {
       await signIn(email, password)
-      console.log('✅ [LoginPage] signIn() successful')
-      console.log('📦 [LoginPage] localStorage after signin:')
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i)
-        const value = localStorage.getItem(key)
-        const displayValue = key.includes('token') || key.includes('auth_token') ? `${value.substring(0, 30)}...` : value
-        console.log(`   ${i + 1}. "${key}": ${displayValue}`)
-      }
-      console.log('🔄 [LoginPage] Calling onLoginSuccess()...')
       onLoginSuccess()
-      console.log('✅ [LoginPage] onLoginSuccess() called')
     } catch (err) {
       // NEW_PASSWORD_REQUIRED チャレンジの場合
       if (err.message?.startsWith('NEW_PASSWORD_REQUIRED:')) {
