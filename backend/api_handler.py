@@ -10,8 +10,8 @@ from datetime import datetime
 import base64
 import pytz
 
-from database import DiaryDatabase
-from models import DiaryEntry
+from .database import DiaryDatabase
+from .models import DiaryEntry
 
 # 環境変数
 DYNAMODB_TABLE = os.environ.get("DYNAMODB_TABLE_NAME")

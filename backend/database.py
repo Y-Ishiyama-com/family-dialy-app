@@ -8,7 +8,7 @@ from typing import Optional, List
 import os
 import uuid
 import pytz
-from models import DiaryEntry
+from .models import DiaryEntry
 
 
 class InMemoryDatabase:
