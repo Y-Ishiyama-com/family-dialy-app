@@ -176,7 +176,7 @@ export class FamilyDiaryMainStack extends cdk.Stack {
         COGNITO_CLIENT_ID: userPoolClient.userPoolClientId,
         // CORS許可オリジン（カンマ区切りで複数指定可能）
         // 本番: CloudFrontドメイン、開発: localhost
-        ALLOWED_ORIGINS: 'https://d1l985y7ocpo2p.cloudfront.net,http://localhost:5173',
+        ALLOWED_ORIGINS: 'https://d1l985y7ocpo2p.cloudfront.net,http://localhost:5174',
         // 開発環境でのCORSバイパス（本番では無効化推奨）
         ALLOW_DEV_CORS_BYPASS: 'false',
       },
