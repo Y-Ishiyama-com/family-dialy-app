@@ -19,14 +19,7 @@ if env_path.exists():
 
 from .auth import get_current_user, optional_verify_token
 from .database import DiaryDatabase
-from .models import (
-    DiaryEntryCreate,
-    DiaryEntryUpdate,
-    DiaryEntryResponse,
-    PhotoPresignedUrlResponse,
-    FamilyCalendarResponse,
-    FamilyCalendarEntry,
-)
+from .models import DiaryEntry, DailyPrompt
 
 app = FastAPI(title="Family Diary API", version="1.0.0")
 
@@ -126,21 +119,21 @@ async def get_diary_entry(
     if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
 
-    return DiaryEntryResponse(
-        user_id=entry["user_id"],
-        date=entry["date"],
-        entry_text=entry["entry_text"],
-        is_public=entry.get("is_public") == "true",
-        photo_url=entry.get("photo_url"),
-        created_at=entry["created_at"],
-        updated_at=entry["updated_at"],
-    )
+    return {
+        "user_id": entry["user_id"],
+        "date": entry["date"],
+        "entry_text": entry["entry_text"],
+        "is_public": entry.get("is_public") == "true",
+        "photo_url": entry.get("photo_url"),
+        "created_at": entry["created_at"],
+        "updated_at": entry["updated_at"],
+    }
 
 
 @app.post("/diary/{date}")
 async def create_or_update_diary_entry(
     date: str,
-    entry_data: DiaryEntryCreate,
+    entry_data: dict,
     user_id: str = Depends(get_current_user),
 ):
     """
@@ -157,9 +150,9 @@ async def create_or_update_diary_entry(
         updated = db.update_entry(
             user_id=user_id,
             date=date,
-            entry_text=entry_data.entry_text,
-            is_public=entry_data.is_public,
-            photo_url=entry_data.photo_url,
+            entry_text=entry_data.get("entry_text"),
+            is_public=entry_data.get("is_public", False),
+            photo_url=entry_data.get("photo_url"),
         )
         return {
             "message": "Entry updated",
@@ -170,9 +163,9 @@ async def create_or_update_diary_entry(
         entry = db.put_entry(
             user_id=user_id,
             date=date,
-            entry_text=entry_data.entry_text,
-            is_public=entry_data.is_public,
-            photo_url=entry_data.photo_url,
+            entry_text=entry_data.get("entry_text"),
+            is_public=entry_data.get("is_public", False),
+            photo_url=entry_data.get("photo_url"),
         )
         return {
             "message": "Entry created",
@@ -226,10 +219,10 @@ async def get_photo_presigned_url(
         ExpiresIn=900,  # 15 minutes
     )
 
-    return PhotoPresignedUrlResponse(
-        presigned_url=presigned_url,
-        photo_key=photo_key,
-    )
+    return {
+        "presigned_url": presigned_url,
+        "photo_key": photo_key,
+    }
 
 
 @app.get("/family/calendar/{year}/{month}")
@@ -271,8 +264,16 @@ async def get_family_calendar(
         for entry in entries_map.values()
     ]
 
-    return FamilyCalendarResponse(
-        entries=calendar_entries,
-        year=year,
-        month=month,
-    )
+    return {
+        "entries": [
+            {
+                "user_id": entry["user_id"],
+                "date": entry["date"],
+                "entry_text": entry["entry_text"],
+                "photo_url": entry.get("photo_url"),
+            }
+            for entry in entries_map.values()
+        ],
+        "year": year,
+        "month": month,
+    }
