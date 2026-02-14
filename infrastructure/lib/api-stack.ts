@@ -82,8 +82,11 @@ export class ApiStack extends cdk.Stack {
         dataTraceEnabled: true,
       },
       defaultCorsPreflightOptions: {
-        // 本番環境: CloudFrontドメインのみを許可
-        allowOrigins: ['https://d1l985y7ocpo2p.cloudfront.net'],
+        // ローカル開発と本番環境の両方を許可
+        allowOrigins: [
+          'http://localhost:5174',      // ローカル開発
+          'https://d1l985y7ocpo2p.cloudfront.net'  // 本番環境
+        ],
         allowMethods: apigateway.Cors.ALL_METHODS,
         allowHeaders: [
           'Content-Type',
