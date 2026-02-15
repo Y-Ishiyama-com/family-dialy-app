@@ -3,7 +3,7 @@
  * 公開日記（全ユーザー）と非公開日記（自分のみ）を切り替え表示
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getFamilyCalendar, getMyCalendar, getPrompt } from '../services/apiService'
 import FamilyCalendar from '../components/FamilyCalendar'
 import './CalendarPage.css'
@@ -17,8 +17,8 @@ export default function CalendarPage() {
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('public') // 'public' or 'private'
 
-  // 指定日のお題を取得
-  const loadPromptsForMonth = async () => {
+  // 指定月のお題を取得（メモ化）
+  const loadPromptsForMonth = useCallback(async () => {
     try {
       const daysInMonth = new Date(currentYear, currentMonth, 0).getDate()
       const promptsData = {}
@@ -40,7 +40,7 @@ export default function CalendarPage() {
     } catch (err) {
       console.error('月間お題の取得に失敗:', err)
     }
-  }
+  }, [currentYear, currentMonth])
 
   // 月のエントリを読み込み
   useEffect(() => {
@@ -70,7 +70,7 @@ export default function CalendarPage() {
 
     loadCalendarEntries()
     loadPromptsForMonth()
-  }, [currentYear, currentMonth, activeTab])
+  }, [currentYear, currentMonth, activeTab, loadPromptsForMonth])
 
   const handlePrevMonth = () => {
     if (currentMonth === 1) {
