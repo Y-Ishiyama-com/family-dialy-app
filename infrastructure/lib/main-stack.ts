@@ -278,7 +278,10 @@ export class FamilyDiaryMainStack extends cdk.Stack {
         throttlingRateLimit: 20,    // 定常20リクエスト/秒
       },
       defaultCorsPreflightOptions: {
-        allowOrigins: ['https://d1l985y7ocpo2p.cloudfront.net'],
+        allowOrigins: [
+          'http://localhost:5174',
+          'https://d1l985y7ocpo2p.cloudfront.net'
+        ],
         allowMethods: apigateway.Cors.ALL_METHODS,
         allowHeaders: [
           'Content-Type',
@@ -353,7 +356,7 @@ export class FamilyDiaryMainStack extends cdk.Stack {
       type: apigateway.ResponseType.UNAUTHORIZED,
       statusCode: '401',
       responseHeaders: {
-        'Access-Control-Allow-Origin': "'https://d1l985y7ocpo2p.cloudfront.net'",
+        'Access-Control-Allow-Origin': "'http://localhost:5174', 'https://d1l985y7ocpo2p.cloudfront.net'",
         'Access-Control-Allow-Headers': "'Content-Type,Authorization'",
         'Access-Control-Allow-Methods': "'GET,POST,DELETE,OPTIONS'",
         'Access-Control-Allow-Credentials': "'true'",
