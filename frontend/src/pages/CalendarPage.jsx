@@ -3,8 +3,8 @@
  * 公開日記（全ユーザー）と非公開日記（自分のみ）を切り替え表示
  */
 
-import { useState, useEffect } from 'react'
-import { getFamilyCalendar, getMyCalendar } from '../services/apiService'
+import { useState, useEffect, useCallback } from 'react'
+import { getFamilyCalendar, getMyCalendar, getPrompt } from '../services/apiService'
 import FamilyCalendar from '../components/FamilyCalendar'
 import './CalendarPage.css'
 
@@ -12,9 +12,35 @@ export default function CalendarPage() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1)
   const [entries, setEntries] = useState([])
+  const [prompts, setPrompts] = useState({}) // 日付ごとのお題
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('public') // 'public' or 'private'
+
+  // 指定月のお題を取得（メモ化）
+  const loadPromptsForMonth = useCallback(async () => {
+    try {
+      const daysInMonth = new Date(currentYear, currentMonth, 0).getDate()
+      const promptsData = {}
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+        try {
+          const response = await getPrompt(date)
+          if (response && response.prompt) {
+            promptsData[date] = response.prompt
+          }
+        } catch (err) {
+          // 各日付のお題取得エラーは無視
+          console.log(`お題の取得に失敗しました: ${date}`)
+        }
+      }
+
+      setPrompts(promptsData)
+    } catch (err) {
+      console.error('月間お題の取得に失敗:', err)
+    }
+  }, [currentYear, currentMonth])
 
   // 月のエントリを読み込み
   useEffect(() => {
@@ -43,9 +69,8 @@ export default function CalendarPage() {
     }
 
     loadCalendarEntries()
-  }, [currentYear, currentMonth, activeTab])
-
-  // loadCalendarEntriesは上記useEffect内で定義
+    loadPromptsForMonth()
+  }, [currentYear, currentMonth, activeTab, loadPromptsForMonth])
 
   const handlePrevMonth = () => {
     if (currentMonth === 1) {
@@ -121,7 +146,12 @@ export default function CalendarPage() {
         {loading ? (
           <div className="loading-state">読み込み中...</div>
         ) : (
-          <FamilyCalendar year={currentYear} month={currentMonth} entries={entries} />
+          <FamilyCalendar 
+            year={currentYear}
+            month={currentMonth}
+            entries={entries}
+            prompts={prompts}
+          />
         )}
       </div>
     </div>
