@@ -69,6 +69,8 @@
   color: #333;
   line-height: 1.6;
   font-weight: 500;
+  white-space: pre-wrap;  /* 改行を保持 */
+  word-wrap: break-word;
 }
 
 .daily-prompt.empty .prompt-text,
