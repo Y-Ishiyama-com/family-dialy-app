@@ -63,9 +63,6 @@ export default function DailyPrompt({
           <span className="prompt-label">今日のお題</span>
         </div>
         <p className="prompt-text">{prompt}</p>
-        <div className="prompt-hint">
-          💡 このお題をきっかけに、今日の気持ちや出来事を書いてみてください
-        </div>
       </div>
     </div>
   )

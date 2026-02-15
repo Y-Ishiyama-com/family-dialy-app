@@ -37,7 +37,7 @@ export default function DiaryEntry({
         onChange={(e) => onChange(e.target.value)}
         placeholder="今日のできごとを記録してください..."
         disabled={loading}
-        rows={12}
+        rows={3}
       />
 
       <div className="entry-info">

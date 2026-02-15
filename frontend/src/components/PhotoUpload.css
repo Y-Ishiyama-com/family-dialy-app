@@ -1,7 +1,7 @@
 .photo-upload {
   background: white;
   border-radius: 8px;
-  padding: 1.5rem;
+  padding: 0.75rem;
   margin-bottom: 1.5rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
@@ -9,7 +9,7 @@
 .upload-zone {
   border: 2px dashed #ddd;
   border-radius: 8px;
-  padding: 2rem;
+  padding: 0.75rem;
   text-align: center;
   transition: all 0.2s;
   background: #fafafa;
