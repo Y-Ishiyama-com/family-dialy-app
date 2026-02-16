@@ -193,6 +193,21 @@ export class FamilyDiaryMainStack extends cdk.Stack {
       })
     );
 
+    // === Create Python Dependencies Layer ===
+    const pythonDependenciesLayer = new lambda.LayerVersion(this, 'PythonDependenciesLayer', {
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../backend'), {
+        bundling: {
+          image: lambda.Runtime.PYTHON_3_11.bundlingImage,
+          command: [
+            'bash', '-c',
+            'pip install -r requirements-lambda.txt -t /asset-output/python/lib/python3.11/site-packages'
+          ],
+        },
+      }),
+      compatibleRuntimes: [lambda.Runtime.PYTHON_3_11],
+      description: 'Python dependencies for Lambda functions',
+    });
+
     // === Lambda Function for Daily Prompt Generation ===
     const promptGeneratorFunction = new lambda.Function(this, 'PromptGeneratorFunction', {
       functionName: 'family-diary-prompt-generator',
@@ -212,6 +227,7 @@ export class FamilyDiaryMainStack extends cdk.Stack {
           'layers',
         ],
       }),
+      layers: [pythonDependenciesLayer],
       timeout: cdk.Duration.seconds(60),
       memorySize: 256,
       environment: {
