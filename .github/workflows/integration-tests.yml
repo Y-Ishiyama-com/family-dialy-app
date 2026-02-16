@@ -58,12 +58,14 @@ jobs:
         id: lambda_invoke
         run: |
           echo "Invoking prompt generator Lambda..."
-          RESPONSE=$(aws lambda invoke \
+          aws lambda invoke \
             --function-name family-diary-prompt-generator \
             --payload '{}' \
             --region ${{ env.AWS_REGION }} \
-            /tmp/lambda-response.json \
-            && cat /tmp/lambda-response.json)
+            /tmp/lambda-response.json
+          
+          # Read only the Lambda response file
+          RESPONSE=$(cat /tmp/lambda-response.json)
           
           echo "Lambda response: $RESPONSE"
           
@@ -74,6 +76,7 @@ jobs:
           else
             echo "⚠️ Lambda execution failed or returned error"
             echo "$RESPONSE"
+            exit 1
           fi
 
       - name: Verify prompt in DynamoDB
