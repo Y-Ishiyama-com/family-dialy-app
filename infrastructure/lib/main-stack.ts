@@ -11,7 +11,6 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as path from 'path';
-import * as python from 'aws-cdk-lib/aws-lambda-python';
 
 /**
  * Main stack that contains all resources
@@ -195,8 +194,16 @@ export class FamilyDiaryMainStack extends cdk.Stack {
     );
 
     // === Create Python Dependencies Layer ===
-    const pythonDependenciesLayer = new python.PythonLayerVersion(this, 'PythonDependenciesLayer', {
-      entry: path.join(__dirname, '../../backend'),
+    const pythonDependenciesLayer = new lambda.LayerVersion(this, 'PythonDependenciesLayer', {
+      code: lambda.Code.fromAsset(path.join(__dirname, '../../backend'), {
+        bundling: {
+          image: lambda.Runtime.PYTHON_3_11.bundlingImage,
+          command: [
+            'bash', '-c',
+            'pip install -r requirements-lambda.txt -t /asset-output/python/lib/python3.11/site-packages'
+          ],
+        },
+      }),
       compatibleRuntimes: [lambda.Runtime.PYTHON_3_11],
       description: 'Python dependencies for Lambda functions',
     });
