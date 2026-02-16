@@ -11,6 +11,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as path from 'path';
+import * as python from 'aws-cdk-lib/aws-lambda-python';
 
 /**
  * Main stack that contains all resources
@@ -193,6 +194,13 @@ export class FamilyDiaryMainStack extends cdk.Stack {
       })
     );
 
+    // === Create Python Dependencies Layer ===
+    const pythonDependenciesLayer = new python.PythonLayerVersion(this, 'PythonDependenciesLayer', {
+      entry: path.join(__dirname, '../../backend'),
+      compatibleRuntimes: [lambda.Runtime.PYTHON_3_11],
+      description: 'Python dependencies for Lambda functions',
+    });
+
     // === Lambda Function for Daily Prompt Generation ===
     const promptGeneratorFunction = new lambda.Function(this, 'PromptGeneratorFunction', {
       functionName: 'family-diary-prompt-generator',
@@ -212,6 +220,7 @@ export class FamilyDiaryMainStack extends cdk.Stack {
           'layers',
         ],
       }),
+      layers: [pythonDependenciesLayer],
       timeout: cdk.Duration.seconds(60),
       memorySize: 256,
       environment: {

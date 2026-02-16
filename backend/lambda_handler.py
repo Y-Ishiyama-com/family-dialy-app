@@ -6,3 +6,4 @@ from main import app
 
 # Lambda handler with proper settings for API Gateway Proxy Integration
 handler = Mangum(app, lifespan="off")
+
