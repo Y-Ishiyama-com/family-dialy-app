@@ -13,6 +13,8 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Any
 import sys
 import pytz
+import feedparser
+import requests
 
 # DynamoDB と Bedrock クライアント
 dynamodb = boto3.resource("dynamodb")
@@ -90,10 +92,13 @@ def get_context_info() -> Dict[str, str]:
         "3-8": "International Women's Day",
         "4-1": "April Fools' Day",
         "5-5": "Children's Day",
+        "5-6": "Nanaka's Birthday",
         "7-7": "Tanabata",
         "8-15": "O-Bon Festival",
-        "9-23": "Autumn Equinox",
+        "9-6": "Yoshiharu's Birthday",
+        "9-21": "Miyuki's Birthday",
         "10-31": "Halloween",
+        "11-2": "Hiroki's Birthday",
         "11-3": "Culture Day",
         "12-25": "Christmas",
     }
@@ -104,14 +109,47 @@ def get_context_info() -> Dict[str, str]:
     
     return context
 
+def get_yahoo_news_from_rss(max_articles: int = 3) -> List[Dict[str, str]]:
+    """
+    RSS フィードから Yahoo ニュースのトップニュースを取得
+    
+    Args:
+        max_articles: 取得するニュース記事数
+    
+    Returns:
+        ニュース情報リスト [{title, url}]
+    """
+    try:
+        # Yahoo ニュース RSS フィード URL
+        rss_url = "https://news.yahoo.co.jp/pickup/rss.xml"
+        
+        # RSS フィードを取得
+        feed = feedparser.parse(rss_url)
+        
+        news_items = []
+        for entry in feed.entries[:max_articles]:
+            news_item = {
+                "title": entry.get("title", ""),
+                "url": entry.get("link", "")
+            }
+            if news_item["title"]:
+                news_items.append(news_item)
+        
+        print(f"Retrieved {len(news_items)} news articles from Yahoo RSS")
+        return news_items
+    
+    except Exception as e:
+        print(f"Error fetching Yahoo News RSS: {e}")
+        return []
 
-def generate_prompt_with_bedrock(context: Dict[str, str], recent_prompts: List[Dict]) -> str:
+def generate_prompt_with_bedrock(context: Dict[str, str], recent_prompts: List[Dict], news: List[Dict] = None) -> str:
     """
     Bedrockを使用してお題を生成
     
     Args:
         context: コンテキスト情報
         recent_prompts: 過去のお題リスト
+        news: Yahoo ニュース情報
     
     Returns:
         生成されたお題テキスト
@@ -132,22 +170,29 @@ def generate_prompt_with_bedrock(context: Dict[str, str], recent_prompts: List[D
     if "special_event" in context:
         context_text += f"特別な日: {context.get('special_event')}\n"
     
+    # ニュース情報をテキスト化
+    news_text = ""
+    if news:
+        news_text = "\n【本日のニュース】\n"
+        for i, article in enumerate(news, 1):
+            news_text += f"{i}. {article.get('title', '')}\n"
+    
     # Bedrock プロンプト
-    system_prompt = """あなたは家族の日記用のお題生成AIです。
+    system_prompt = """あなたは個人の日記用のお題生成AIです。
 毎日異なるテーマの思考を促すような質問やお題を生成してください。
 
 以下の条件を満たすお題を1つだけ生成してください：
 1. 前向きで思考を促すような内容
-2. 短く、15文字程度の1文で表現できる内容
+2. 短く、20文字程度の1文で表現できる内容
 3. 日記を書く際のきっかけになるような質問形式が理想的
-4. 季節やイベント、天気などの状況を考慮する
+4. 季節やイベント、天気、ニュースなどの状況を考慮する
 5. 過去のお題と異なる観点や違うテーマのお題
+6. ニュースが提供されている場合、それと関連した思考を促すお題も検討する
 
 【出力形式】
 お題テキストのみを返してください（説明は不要）。"""
 
-    user_message = f"""{context_text}
-
+    user_message = f"""{context_text}{news_text}
 {recent_prompts_text}
 
 上記を踏まえて、本日のお題を1つだけ生成してください。
@@ -253,8 +298,11 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         recent_prompts = get_recent_prompts(days=14)
         print(f"Retrieved {len(recent_prompts)} recent prompts")
         
-        # Bedrock でお題を生成
-        generated_prompt = generate_prompt_with_bedrock(context_info, recent_prompts)
+        # Yahoo ニュース RSS を取得
+        top_news = get_yahoo_news_from_rss(max_articles=3)
+        
+        # Bedrock でお題を生成（ニュース情報を含める）
+        generated_prompt = generate_prompt_with_bedrock(context_info, recent_prompts, top_news)
         
         if not generated_prompt:
             return {
@@ -288,7 +336,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 "message": "Prompt generated and saved successfully",
                 "date": today_date,
                 "prompt": generated_prompt,
-                "category": context_info.get("special_event", context_info.get("season", "daily"))
+                "category": context_info.get("special_event", context_info.get("season", "daily")),
+                "news_articles": len(top_news)
             })
         }
     
