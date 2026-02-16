@@ -1,4 +1,4 @@
-/* ファミリーカレンダー - リスト形式（スマホ対応） */
+/* ファミリーカレンダー - 日ごとのリスト形式（スマホ対応） */
 
 .family-calendar-list {
   width: 100%;
@@ -8,7 +8,7 @@
 
 .empty-state {
   text-align: center;
-  padding: 3rem 1rem;
+  padding: 2rem 1rem;
   color: #666;
 }
 
@@ -22,124 +22,151 @@
   color: #999;
 }
 
-/* エントリアイテム */
-.entry-item {
+/* 日付リストアイテム */
+.date-list-item {
   background: white;
   border: 1px solid #e0e0e0;
-  border-radius: 12px;
-  margin-bottom: 1rem;
-  overflow: hidden;
+  border-radius: 10px;
+  margin-bottom: 0.6rem;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
 }
 
-.entry-item:hover {
+.date-list-item:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border-color: #667eea;
 }
 
-/* 非公開日記アイテム - 暖色系 */
-.entry-item.private {
-  border-color: #ffd4c4;
-}
-
-.entry-item.private:hover {
-  box-shadow: 0 4px 12px rgba(255, 127, 80, 0.15);
-  border-color: #ff7f50;
-}
-
-.entry-item.today {
+.date-list-item.today {
   border: 2px solid #667eea;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
 
-/* エントリヘッダー */
-.entry-header {
+.date-list-item.has-private {
+  border-color: #ffd4c4;
+}
+
+.date-list-item.has-private:hover {
+  border-color: #ff7f50;
+  box-shadow: 0 4px 12px rgba(255, 127, 80, 0.15);
+}
+
+/* 日付ヘッダー */
+.date-list-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.25rem;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.6rem 0.8rem;
   background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
 }
 
-.entry-item.today .entry-header {
+.date-list-item.today .date-list-header {
   background: linear-gradient(135deg, #e8ebf7 0%, #f5f7ff 100%);
 }
 
-/* 非公開日記ヘッダー - 暖色系 */
-.entry-item.private .entry-header {
+.date-list-item.has-private .date-list-header {
   background: linear-gradient(135deg, #fff5f0 0%, #ffe8db 100%);
 }
 
-.entry-item.private.today .entry-header {
-  background: linear-gradient(135deg, #ffe4d6 0%, #ffd9c9 100%);
-}
-
-.entry-date {
+/* 1行目：日付 + ユーザー名 + 展開アイコン */
+.date-header-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  flex: 1;
+  gap: 0.6rem;
+  justify-content: space-between;
+}
+
+/* 日付情報セクション */
+.date-info {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 .today-badge {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 0.3rem 0.6rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 5px;
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 
 .date-text {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: #333;
+  white-space: nowrap;
 }
 
-.entry-meta {
+/* ユーザー情報 */
+.users-info {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 0;
 }
 
-.user-badge {
-  background: #667eea;
-  color: white;
-  padding: 0.4rem 0.8rem;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
+.users-names {
+  color: #555;
+  font-weight: 500;
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* 非公開日記のユーザーバッジ - 暖色系 */
-.user-badge.private {
-  background: linear-gradient(135deg, #ff7f50 0%, #ff6347 100%);
-}
-
-/* 非公開バッジ */
-.private-badge {
-  font-size: 0.9rem;
+.private-indicator {
+  font-size: 0.75rem;
   opacity: 0.8;
+  flex-shrink: 0;
 }
 
 .expand-icon {
   color: #667eea;
-  font-size: 1rem;
+  font-size: 0.9rem;
   transition: transform 0.3s ease;
+  flex-shrink: 0;
 }
 
-/* エントリコンテンツ */
-.entry-content {
-  padding: 1.25rem;
-  border-top: 1px solid #f0f0f0;
-  background: white;
-  animation: slideDown 0.3s ease;
+/* 2行目：お題 */
+.prompt-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
 }
 
-@keyframes slideDown {
+.prompt-icon {
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  line-height: 1.3;
+}
+
+.prompt-text {
+  color: #666;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+/* ポップアップ */
+.date-popup {
+  animation: popupFadeIn 0.3s ease;
+  margin-bottom: 0.6rem;
+}
+
+@keyframes popupFadeIn {
   from {
     opacity: 0;
     transform: translateY(-10px);
@@ -150,18 +177,172 @@
   }
 }
 
+.popup-content {
+  background: white;
+  border: 2px solid #667eea;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-top: -0.3rem;
+  margin-left: 0.4rem;
+  margin-right: 0.4rem;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
+}
+
+.date-list-item.has-private ~ .date-popup .popup-content {
+  border-color: #ff7f50;
+  box-shadow: 0 4px 16px rgba(255, 127, 80, 0.15);
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.popup-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.popup-close {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: #999;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.popup-close:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+/* ポップアップ内のお題 */
+.popup-prompt {
+  display: flex;
+  gap: 0.75rem;
+  background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+  border-left: 4px solid #667eea;
+  padding: 0.8rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.popup-prompt .prompt-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.prompt-content {
+  flex: 1;
+}
+
+.prompt-title {
+  margin: 0 0 0.2rem 0;
+  font-size: 0.8rem;
+  color: #999;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.prompt-value {
+  margin: 0;
+  color: #333;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* エントリコンテナ */
+.entries-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ポップアップ内のエントリ */
+.popup-entry {
+  background: #f9f9f9;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  padding: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.popup-entry:hover {
+  background: white;
+  border-color: #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.popup-entry.private {
+  background: linear-gradient(135deg, #fff5f0 0%, #fffbf8 100%);
+  border-color: #ffddd0;
+}
+
+/* エントリユーザー情報 */
+.entry-user {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.user-icon {
+  font-size: 0.9rem;
+}
+
+.user-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.private-badge {
+  background: #ff7f50;
+  color: white;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+/* エントリ本体 */
+.entry-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
 .entry-text {
   color: #333;
-  line-height: 1.7;
-  font-size: 1rem;
+  line-height: 1.6;
+  font-size: 0.9rem;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
 .entry-photo {
-  margin-top: 1rem;
+  margin-top: 0.3rem;
   border-radius: 8px;
   overflow: hidden;
+  background: white;
+  border: 1px solid #e0e0e0;
 }
 
 .entry-photo img {
@@ -173,84 +354,98 @@
 
 /* スマホ対応 */
 @media (max-width: 768px) {
-  .entry-header {
-    padding: 0.9rem 1rem;
-  }
-
   .date-text {
-    font-size: 1rem;
+    font-size: 0.9rem;
   }
 
-  .user-badge {
-    padding: 0.35rem 0.7rem;
-    font-size: 0.8rem;
+  .users-names {
+    font-size: 0.75rem;
   }
 
-  .entry-content {
-    padding: 1rem;
-  }
-
-  .entry-text {
-    font-size: 0.95rem;
+  .prompt-text {
+    font-size: 0.75rem;
   }
 }
 
 @media (max-width: 480px) {
   .family-calendar-list {
-    padding: 0 0.5rem;
+    padding: 0 0.4rem;
   }
 
-  .entry-item {
-    border-radius: 10px;
-    margin-bottom: 0.75rem;
-  }
-
-  .entry-header {
-    padding: 0.8rem;
-    flex-wrap: wrap;
-  }
-
-  .entry-date {
-    flex-basis: 100%;
+  .date-list-item {
+    border-radius: 8px;
     margin-bottom: 0.5rem;
   }
 
+  .date-list-header {
+    padding: 0.5rem 0.7rem;
+    gap: 0.35rem;
+  }
+
+  .date-header-row {
+    gap: 0.5rem;
+  }
+
   .date-text {
-    font-size: 0.95rem;
+    font-size: 0.85rem;
   }
 
   .today-badge {
-    font-size: 0.7rem;
-    padding: 0.25rem 0.5rem;
+    font-size: 0.6rem;
+    padding: 0.18rem 0.4rem;
   }
 
-  .user-badge {
-    padding: 0.3rem 0.6rem;
-    font-size: 0.75rem;
+  .users-names {
+    font-size: 0.7rem;
   }
 
   .expand-icon {
+    font-size: 0.8rem;
+  }
+
+  .prompt-text {
+    font-size: 0.7rem;
+  }
+
+  .popup-content {
+    padding: 0.8rem;
+    margin-left: 0.3rem;
+    margin-right: 0.3rem;
+  }
+
+  .popup-header h3 {
+    font-size: 1rem;
+  }
+
+  .popup-prompt {
+    padding: 0.7rem;
+  }
+
+  .prompt-title {
+    font-size: 0.75rem;
+  }
+
+  .prompt-value {
     font-size: 0.9rem;
   }
 
-  .entry-content {
-    padding: 0.8rem;
+  .popup-entry {
+    padding: 0.7rem;
+  }
+
+  .user-name {
+    font-size: 0.85rem;
   }
 
   .entry-text {
-    font-size: 0.9rem;
-    line-height: 1.6;
+    font-size: 0.8rem;
   }
 
   .empty-state {
-    padding: 2rem 1rem;
+    padding: 1.5rem 1rem;
   }
 
   .empty-state p {
     font-size: 0.9rem;
-  }
-
-  .entry-preview {
-    display: none;
   }
 }

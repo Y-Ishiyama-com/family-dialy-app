@@ -67,7 +67,6 @@ export default function PhotoUpload({ onUpload = () => {}, loading = false }) {
               <>アップロード中...</>
             ) : (
               <>
-                写真をドラッグ&ドロップ または
                 <button
                   type="button"
                   className="upload-button"

@@ -19,6 +19,11 @@ export default function LoginPage({ onLoginSuccess }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // パスワード表示/非表示の状態を追加
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+
   const handleDemoLogin = () => {
     setError('')
     setLoading(true)
@@ -122,16 +127,26 @@ export default function LoginPage({ onLoginSuccess }) {
             <form onSubmit={handleNewPassword}>
               <div className="form-group">
                 <label htmlFor="newPassword">新しいパスワード</label>
-                <input
-                  id="newPassword"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="8文字以上、大文字・小文字・数字を含む"
-                  required
-                  disabled={loading}
-                  minLength={8}
-                />
+                <div className="password-input-wrapper">
+                  <input
+                    id="newPassword"
+                    type={showNewPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="8文字以上、大文字・小文字・数字を含む"
+                    required
+                    disabled={loading}
+                    minLength={8}
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    aria-label={showNewPassword ? "パスワードを隠す" : "パスワードを表示"}
+                  >
+                    {showNewPassword ? '👁️' : '👁️‍🗨️'}
+                  </button>
+                </div>
               </div>
               <button
                 type="submit"
@@ -159,55 +174,75 @@ export default function LoginPage({ onLoginSuccess }) {
               </div>
 
               <form onSubmit={mode === 'signin' ? handleSignIn : handleSignUp}>
-            <div className="form-group">
-              <label htmlFor="email">
-                {mode === 'signin' ? 'ユーザー名 または メールアドレス' : 'メールアドレス'}
-              </label>
-              <input
-                id="email"
-                type={mode === 'signin' ? 'text' : 'email'}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={mode === 'signin' ? 'ユーザー名 または メールアドレス' : 'example@gmail.com'}
-                required
-                disabled={loading}
-              />
-            </div>
+                <div className="form-group">
+                  <label htmlFor="email">
+                    {mode === 'signin' ? 'ユーザー名 または メールアドレス' : 'メールアドレス'}
+                  </label>
+                  <input
+                    id="email"
+                    type={mode === 'signin' ? 'text' : 'email'}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={mode === 'signin' ? 'ユーザー名 または メールアドレス' : 'example@gmail.com'}
+                    required
+                    disabled={loading}
+                  />
+                </div>
 
-            <div className="form-group">
-              <label htmlFor="password">パスワード</label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
+                <div className="form-group">
+                  <label htmlFor="password">パスワード</label>
+                  <div className="password-input-wrapper">
+                    <input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      disabled={loading}
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "パスワードを隠す" : "パスワードを表示"}
+                    >
+                      {showPassword ? '👁️' : '👁️‍🗨️'}
+                    </button>
+                  </div>
+                </div>
 
-            {mode === 'signup' && (
-              <div className="form-group">
-                <label htmlFor="confirmPassword">パスワード（確認）</label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
+                {mode === 'signup' && (
+                  <div className="form-group">
+                    <label htmlFor="confirmPassword">パスワード（確認）</label>
+                    <div className="password-input-wrapper">
+                      <input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                        disabled={loading}
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        aria-label={showConfirmPassword ? "パスワードを隠す" : "パスワードを表示"}
+                      >
+                        {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="submit-button"
                   disabled={loading}
-                />
-              </div>
-            )}
-
-            <button
-              type="submit"
-              className="submit-button"
-              disabled={loading}
-            >
-              {loading ? '処理中...' : mode === 'signin' ? 'ログイン' : '登録'}
-            </button>
-          </form>
+                >
+                  {loading ? '処理中...' : mode === 'signin' ? 'ログイン' : '登録'}
+                </button>
+              </form>
             </>
           )}
         </div>

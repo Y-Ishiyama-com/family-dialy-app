@@ -41,18 +41,24 @@
 
 .prompt-container {
   max-width: 100%;
+  word-break: break-word;  /* 追加：長い単語を強制的に折り返す */
+  overflow: visible;  /* 追加：明示的に設定 */
+  -webkit-box-orient: vertical;  /* 削除または unset */
 }
 
 .prompt-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;  /* center から flex-start に変更 */
   gap: 0.5rem;
   margin-bottom: 0.75rem;
+  flex-wrap: wrap;  /* 追加：折り返しを許可 */
 }
 
 .prompt-icon {
   font-size: 1.5rem;
   display: inline-block;
+  flex-shrink: 0;  /* 追加：縮小を防止 */
+  min-width: 1.5rem;  /* 追加：最小幅を指定 */
 }
 
 .prompt-label {
@@ -69,6 +75,14 @@
   color: #333;
   line-height: 1.6;
   font-weight: 500;
+  white-space: normal;  /* pre-wrap から normal に変更 */
+  word-wrap: break-word;
+  overflow-wrap: break-word;  /* 追加：単語が長い場合に折り返し */
+  overflow: visible !important;  /* !important を追加して強制上書き */
+  text-overflow: clip !important;  /* !important を追加 */
+  display: block;  /* 追加：ブロック要素として展開 */
+  -webkit-line-clamp: unset !important;  /* line-clamp を解除 */
+  -webkit-box-orient: unset !important;  /* box-orient を解除 */
 }
 
 .daily-prompt.empty .prompt-text,
@@ -121,6 +135,10 @@
 
   .prompt-text {
     font-size: 1rem;
+    white-space: pre-wrap;  /* 改行を保持 */
+    word-wrap: break-word;
+    overflow-wrap: break-word;  /* 追加：単語が長い場合に折り返し */
+    overflow: visible;  /* 追加：...で切らない */
   }
 
   .prompt-icon {
