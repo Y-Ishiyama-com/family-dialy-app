@@ -123,11 +123,32 @@ def get_yahoo_news_from_rss(max_articles: int = 3) -> List[Dict[str, str]]:
         # Yahoo ニュース RSS フィード URL
         rss_url = "https://news.yahoo.co.jp/pickup/rss.xml"
         
-        # RSS フィードを取得
-        feed = feedparser.parse(rss_url)
+        # User-Agent を設定（Yahoo がブロック対策）
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        
+        print(f"Fetching RSS from {rss_url}")
+        
+        # RSS フィードを取得（タイムアウト設定）
+        response = requests.get(rss_url, headers=headers, timeout=10)
+        response.raise_for_status()
+        
+        print(f"Response status: {response.status_code}, Content-Type: {response.headers.get('Content-Type')}")
+        
+        # feedparser で解析
+        feed = feedparser.parse(response.content)
+        
+        print(f"Feed parsed. Entries found: {len(feed.entries)}")
+        
+        # フィードの状態を確認
+        if feed.bozo:
+            print(f"Feed parsing warning: {feed.bozo_exception}")
         
         news_items = []
-        for entry in feed.entries[:max_articles]:
+        for i, entry in enumerate(feed.entries[:max_articles]):
+            print(f"Entry {i}: title={entry.get('title', 'N/A')[:50]}, has_link={bool(entry.get('link'))}")
+            
             news_item = {
                 "title": entry.get("title", ""),
                 "url": entry.get("link", "")
@@ -135,11 +156,19 @@ def get_yahoo_news_from_rss(max_articles: int = 3) -> List[Dict[str, str]]:
             if news_item["title"]:
                 news_items.append(news_item)
         
-        print(f"Retrieved {len(news_items)} news articles from Yahoo RSS")
+        print(f"Retrieved {len(news_items)} valid news articles from Yahoo RSS")
         return news_items
     
+    except requests.exceptions.Timeout as e:
+        print(f"Timeout fetching Yahoo News RSS: {e}")
+        return []
+    except requests.exceptions.RequestException as e:
+        print(f"Network error fetching Yahoo News RSS: {e}")
+        return []
     except Exception as e:
         print(f"Error fetching Yahoo News RSS: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 def generate_prompt_with_bedrock(context: Dict[str, str], recent_prompts: List[Dict], news: List[Dict] = None) -> str:
@@ -267,19 +296,16 @@ def save_prompt(date: str, prompt: str, category: str = "daily") -> bool:
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     Lambda ハンドラーメイン関数
-    EventBridge のトリガーで毎日実行される
-    
-    Returns:
-        結果レスポンス
     """
     jst = pytz.timezone('Asia/Tokyo')
     now_jst = datetime.now(jst)
-    print(f"Prompt generation Lambda triggered at {now_jst.isoformat()}")
+    print(f"=== Prompt generation Lambda triggered at {now_jst.isoformat()} ===")
     
     try:
         # コンテキスト情報を取得
         context_info = get_context_info()
         today_date = context_info["date"]
+        print(f"Context: {json.dumps(context_info)}")
         
         # 既に本日のお題が存在するか確認
         existing = prompts_table.get_item(Key={"date": today_date})
@@ -299,10 +325,15 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         print(f"Retrieved {len(recent_prompts)} recent prompts")
         
         # Yahoo ニュース RSS を取得
+        print("=== Starting Yahoo News RSS fetch ===")
         top_news = get_yahoo_news_from_rss(max_articles=3)
+        print(f"=== Yahoo News RSS fetch completed ===")
+        print(f"Top news: {json.dumps(top_news, ensure_ascii=False)}")
         
         # Bedrock でお題を生成（ニュース情報を含める）
+        print("=== Starting Bedrock prompt generation ===")
         generated_prompt = generate_prompt_with_bedrock(context_info, recent_prompts, top_news)
+        print(f"=== Bedrock prompt generation completed ===")
         
         if not generated_prompt:
             return {
@@ -342,7 +373,8 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     except Exception as e:
-        print(f"Error in lambda_handler: {e}")
+        print(f"=== ERROR in lambda_handler ===")
+        print(f"Error message: {str(e)}")
         import traceback
         traceback.print_exc()
         return {
