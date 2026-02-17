@@ -121,7 +121,7 @@ def get_yahoo_news_from_rss(max_articles: int = 3) -> List[Dict[str, str]]:
     """
     try:
         # Yahoo ニュース RSS フィード URL
-        rss_url = "https://news.yahoo.co.jp/pickup/rss.xml"
+        rss_url = "https://news.yahoo.co.jp/rss/topics/top-picks.xml"
         
         # User-Agent を設定（Yahoo がブロック対策）
         headers = {
