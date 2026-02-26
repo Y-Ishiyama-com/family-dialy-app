@@ -58,6 +58,52 @@ def get_recent_prompts(days: int = 14) -> List[Dict[str, Any]]:
         return []
 
 
+def get_anniversary_info(month: int, day: int) -> Dict[str, Any]:
+    """
+    記念日APIから今日の記念日情報を取得
+    
+    Args:
+        month: 月（1-12）
+        day: 日（1-31）
+    
+    Returns:
+        記念日情報 {anniv1, anniv2, ...}
+    """
+    try:
+        mmdd = f"{month:02d}{day:02d}"
+        url = f"https://api.whatistoday.cyou/v3/anniv/{mmdd}"
+        
+        print(f"Fetching anniversary info from {url}")
+        
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        
+        data = response.json()
+        print(f"Anniversary info retrieved: {json.dumps(data, ensure_ascii=False)}")
+        
+        # anniv1～anniv5 を取得
+        anniv_list = []
+        for i in range(1, 6):
+            key = f"anniv{i}"
+            if key in data and data[key]:
+                anniv_list.append(data[key])
+        
+        return {
+            "anniversary_list": anniv_list,
+            "raw_response": data
+        }
+    
+    except requests.exceptions.Timeout:
+        print(f"Timeout fetching anniversary info")
+        return {"anniversary_list": []}
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching anniversary info: {e}")
+        return {"anniversary_list": []}
+    except Exception as e:
+        print(f"Error parsing anniversary info: {e}")
+        return {"anniversary_list": []}
+
+
 def get_context_info() -> Dict[str, str]:
     """
     生成時の状況情報を取得（季節、イベント、天気など）
@@ -121,7 +167,8 @@ def get_yahoo_news_from_rss(max_articles: int = 3) -> List[Dict[str, str]]:
     """
     try:
         # Yahoo ニュース RSS フィード URL
-        rss_url = "https://news.yahoo.co.jp/rss/topics/top-picks.xml"
+        # rss_url = "https://news.yahoo.co.jp/rss/topics/top-picks.xml"
+        rss_url = "https://news.yahoo.co.jp/rss/categories/life.xml"
         
         # User-Agent を設定（Yahoo がブロック対策）
         headers = {
@@ -171,7 +218,7 @@ def get_yahoo_news_from_rss(max_articles: int = 3) -> List[Dict[str, str]]:
         traceback.print_exc()
         return []
 
-def generate_prompt_with_bedrock(context: Dict[str, str], recent_prompts: List[Dict], news: List[Dict] = None) -> str:
+def generate_prompt_with_bedrock(context: Dict[str, str], recent_prompts: List[Dict], news: List[Dict] = None, anniversary: Dict[str, Any] = None) -> str:
     """
     Bedrockを使用してお題を生成
     
@@ -179,6 +226,7 @@ def generate_prompt_with_bedrock(context: Dict[str, str], recent_prompts: List[D
         context: コンテキスト情報
         recent_prompts: 過去のお題リスト
         news: Yahoo ニュース情報
+        anniversary: 記念日情報
     
     Returns:
         生成されたお題テキスト
@@ -199,6 +247,13 @@ def generate_prompt_with_bedrock(context: Dict[str, str], recent_prompts: List[D
     if "special_event" in context:
         context_text += f"特別な日: {context.get('special_event')}\n"
     
+    # 記念日情報をテキスト化
+    anniversary_text = ""
+    if anniversary and anniversary.get("anniversary_list"):
+        anniversary_text = "\n【本日の記念日】\n"
+        for i, anniv in enumerate(anniversary["anniversary_list"], 1):
+            anniversary_text += f"{i}. {anniv}\n"
+    
     # ニュース情報をテキスト化
     news_text = ""
     if news:
@@ -214,14 +269,14 @@ def generate_prompt_with_bedrock(context: Dict[str, str], recent_prompts: List[D
 1. 前向きで思考を促すような内容
 2. 短く、20文字程度の1文で表現できる内容
 3. 日記を書く際のきっかけになるような質問形式が理想的
-4. 季節やイベント、天気、ニュースなどの状況を考慮する
-5. 過去のお題で使われている単語をなるべく避け、異なる観点や違うテーマのお題
-6. ニュースが提供されている場合、それと関連した思考を促すお題も検討する
+4. 季節やイベント、天気、ニュース、記念日などの状況を考慮する
+5. 過去のお題で使われている単語を避け、異なる観点や違うテーマのお題
+6. ニュースや記念日が提供されている場合、それと関連したお題を検討する
 
 【出力形式】
 お題テキストのみを返してください（説明は不要）。"""
 
-    user_message = f"""{context_text}{news_text}
+    user_message = f"""{context_text}{anniversary_text}{news_text}
 {recent_prompts_text}
 
 上記を踏まえて、本日のお題を1つだけ生成してください。
@@ -324,15 +379,23 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         recent_prompts = get_recent_prompts(days=14)
         print(f"Retrieved {len(recent_prompts)} recent prompts")
         
+        # 記念日情報を取得
+        print("=== Starting Anniversary info fetch ===")
+        month = int(context_info["month"])
+        day = int(context_info["day"])
+        anniversary_info = get_anniversary_info(month, day)
+        print(f"=== Anniversary info fetch completed ===")
+        print(f"Anniversary info: {json.dumps(anniversary_info, ensure_ascii=False)}")
+        
         # Yahoo ニュース RSS を取得
         print("=== Starting Yahoo News RSS fetch ===")
         top_news = get_yahoo_news_from_rss(max_articles=3)
         print(f"=== Yahoo News RSS fetch completed ===")
         print(f"Top news: {json.dumps(top_news, ensure_ascii=False)}")
         
-        # Bedrock でお題を生成（ニュース情報を含める）
+        # Bedrock でお題を生成（記念日とニュース情報を含める）
         print("=== Starting Bedrock prompt generation ===")
-        generated_prompt = generate_prompt_with_bedrock(context_info, recent_prompts, top_news)
+        generated_prompt = generate_prompt_with_bedrock(context_info, recent_prompts, top_news, anniversary_info)
         print(f"=== Bedrock prompt generation completed ===")
         
         if not generated_prompt:
@@ -368,6 +431,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 "date": today_date,
                 "prompt": generated_prompt,
                 "category": context_info.get("special_event", context_info.get("season", "daily")),
+                "anniversaries": len(anniversary_info.get("anniversary_list", [])),
                 "news_articles": len(top_news)
             })
         }
