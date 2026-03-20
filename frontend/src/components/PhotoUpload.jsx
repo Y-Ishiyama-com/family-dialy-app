@@ -42,7 +42,46 @@ export default function PhotoUpload({ onUpload = () => {}, loading = false }) {
       return
     }
 
-    onUpload(file)
+    // 長辺が 640px 以上の場合は 640px に縮小する
+    const MAX_SIDE = 640
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+
+      const { naturalWidth: w, naturalHeight: h } = img
+      const longestSide = Math.max(w, h)
+
+      if (longestSide < MAX_SIDE) {
+        // リサイズ不要
+        onUpload(file)
+        return
+      }
+
+      const scale = MAX_SIDE / longestSide
+      const destW = Math.round(w * scale)
+      const destH = Math.round(h * scale)
+
+      const canvas = document.createElement('canvas')
+      canvas.width = destW
+      canvas.height = destH
+      const ctx = canvas.getContext('2d')
+      ctx.drawImage(img, 0, 0, destW, destH)
+
+      const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
+      const quality = mimeType === 'image/jpeg' ? 0.85 : undefined
+      canvas.toBlob(
+        (blob) => {
+          const resizedFile = new File([blob], file.name, { type: mimeType })
+          onUpload(resizedFile)
+        },
+        mimeType,
+        quality
+      )
+    }
+
+    img.src = objectUrl
   }
 
   const handleFileSelect = (e) => {
